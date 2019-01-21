@@ -3,5 +3,5 @@ language: rust
 rust:
   - stable
   - nightly
-  
-# run
+
+script: cargo build --release
