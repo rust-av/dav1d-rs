@@ -4,4 +4,8 @@ rust:
   - stable
   - nightly
 
-script: cargo build --release
+before_install:
+ - git submodule update --init --recursive
+
+script: 
+ - cargo build --release --verbose
