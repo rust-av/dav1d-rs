@@ -5,6 +5,7 @@ rust:
   - nightly
 
 before_install:
+ - cd /home/travis/build
  - git clone https://github.com/rust-av/rust-av.git
  - git submodule update --init --recursive
 
