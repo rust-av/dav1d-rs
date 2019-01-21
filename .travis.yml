@@ -1,13 +1,22 @@
 language: rust
 
 rust:
-  - stable
-  - nightly
+  #- stable ## Let's spare Travis
+ - nightly
 
 before_install:
- - git submodule add https://github.com/rust-av/rust-av
+ - sudo apt-get update
+ - sudo apt-get install python3
+ - pip3 install meson
+ - pip3 install ninja-build
+ - sudo apt-get install nasm
+
+ - git clone https://code.videolan.org/videolan/dav1d.git
+ - meson build --buildtype release
+ - ninja -C build
+
  - git submodule update --init --recursive
 
 script: 
  - cargo build --release --verbose
- - cargo test --release --verbose
+ - cargo test --verbose
