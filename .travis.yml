@@ -5,7 +5,9 @@ rust:
   - nightly
 
 before_install:
+ - git clone https://github.com/rust-av/rust-av.git
  - git submodule update --init --recursive
 
 script: 
  - cargo build --release --verbose
+ - cargo test --release --verbose
