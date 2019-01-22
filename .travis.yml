@@ -7,6 +7,10 @@ rust:
 before_install:
  - wget https://code.videolan.org/videolan/dav1d/-/archive/0.1.0/dav1d-0.1.0.tar.gz
  - tar -xvf dav1d-0.1.0.tar.gz
+ - cd dav1d-0.1.0
+ - meson .build
+ - ninja -C .build
+ - sudo ninja -C .build install
  - git submodule update --init --recursive
 
 script: 
