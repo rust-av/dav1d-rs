@@ -14,8 +14,8 @@ codec-trait = ["av-codec"]
 
 [dependencies]
 dav1d-sys = { version = "0.1.0", path = "dav1d-sys" }
-av-data = { version = "0.1.0", path = "../rust-av/data" }
-av-codec = { version = "0.1.0", path = "../rust-av/codec", optional = true }
+av-data = { git = "https://github.com/rust-av/rust-av" }
+av-codec = { git = "https://github.com/rust-av/rust-av", optional = true }
 
 [workspace]
 members = ["dav1d-sys"]
