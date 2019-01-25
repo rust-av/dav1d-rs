@@ -3,7 +3,8 @@ language: rust
 rust:
   #- stable ## Let's spare Travis
  - nightly
-
+python:
+  - "3.5"
 addons:
   apt:
     update: true
