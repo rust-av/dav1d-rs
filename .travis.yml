@@ -2,14 +2,19 @@ dist: xenial
 language: rust
 
 rust:
-  #- stable ## Let's spare Travis
+ - stable
  - nightly
+ 
+env:
+ - Dav1d: "stable"
+ - Dav1d: "nightly"
 
 addons:
   apt:
     update: true
 
 before_install:
+    # Install Meson, Ninja & Nasm
     - sudo apt-get install -y ninja-build python3-pip python3-setuptools
     - pip3 install meson
     - wget https://www.nasm.us/pub/nasm/releasebuilds/2.14.02/nasm-2.14.02.tar.xz
@@ -19,9 +24,17 @@ before_install:
     - make
     - sudo make install
     - nasm --version
-    - wget https://code.videolan.org/videolan/dav1d/-/archive/0.1.0/dav1d-0.1.0.tar.gz
-    - tar -xvf dav1d-0.1.0.tar.gz
-    - cd dav1d-0.1.0
+    
+    # Install dav1d
+    - if [ $Dav1d == "stable" ]; then
+        wget https://code.videolan.org/videolan/dav1d/-/archive/0.1.0/dav1d-0.1.0.tar.gz;
+        tar -xvf dav1d-0.1.0.tar.gz;
+        cd dav1d-0.1.0;
+      fi
+    - if [ $Dav1d == "nightly" ]; then
+        git clone https://code.videolan.org/videolan/dav1d.git;
+        cd dav1d;
+      fi
     - meson .build
     - ninja -C .build
     - sudo ninja -C .build install
@@ -30,4 +43,3 @@ before_install:
 script:
  - cargo build --release --verbose
  - cargo test --verbose
-
