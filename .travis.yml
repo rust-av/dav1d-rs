@@ -2,7 +2,7 @@ dist: xenial
 language: rust
 
 rust:
-  #- stable ## Let's spare Travis
+ - stable
  - nightly
 
 addons:
