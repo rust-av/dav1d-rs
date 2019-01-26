@@ -2,12 +2,12 @@ dist: xenial
 language: rust
 
 rust:
- - stable
+ #- stable
  - nightly
  
 env:
  - DAV1D: "Stable"
- #- DAV1D: "Nightly"
+ - DAV1D: "Nightly"
 
 addons:
   apt:
@@ -30,6 +30,10 @@ before_install:
         wget https://code.videolan.org/videolan/dav1d/-/archive/0.1.0/dav1d-0.1.0.tar.gz;
         tar -xvf dav1d-0.1.0.tar.gz;
         cd dav1d-0.1.0;
+      fi
+    - if [ $DAV1D == "Nightly" ]; then
+        git clone https://code.videolan.org/videolan/dav1d.git;
+        cd dav1d;
       fi
     - meson .build
     - ninja -C .build
