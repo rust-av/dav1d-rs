@@ -27,9 +27,9 @@ before_install:
     
     # Install dav1d
     - if [ $Dav1d == "stable" ]; then
-        wget https://code.videolan.org/videolan/dav1d/-/archive/0.2.0/dav1d-0.2.0.tar.gz;
-        tar -xvf dav1d-0.2.0.tar.gz;
-        cd dav1d-0.2.0;
+        wget https://code.videolan.org/videolan/dav1d/-/archive/0.2.1/dav1d-0.2.1.tar.gz;
+        tar -xvf dav1d-0.2.1.tar.gz;
+        cd dav1d-0.2.1;
       fi
     - if [ $Dav1d == "nightly" ]; then
         git clone https://code.videolan.org/videolan/dav1d.git;
