@@ -1,6 +1,6 @@
 [package]
 name = "dav1d-sys"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to dav1d"
@@ -9,10 +9,10 @@ repository = "https://github.com/rust-av/dav1d-rs"
 build = "build.rs"
 
 [package.metadata.pkg-config]
-dav1d = "0.1.0"
+dav1d = "0.2.0"
 
 [build-dependencies]
-bindgen = "0.48"
+bindgen = "0.49"
 metadeps = "1.1.2"
 pkg-config = "0.3.12"
 

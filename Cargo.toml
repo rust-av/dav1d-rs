@@ -1,6 +1,6 @@
 [package]
 name = "libdav1d"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "libdav1d bindings"
@@ -13,7 +13,7 @@ default = ["codec-trait"]
 codec-trait = ["av-codec"]
 
 [dependencies]
-dav1d-sys = { version = "0.1.0", path = "dav1d-sys" }
+dav1d-sys = { version = "0.2.0", path = "dav1d-sys" }
 av-data = { git = "https://github.com/rust-av/rust-av" }
 av-codec = { git = "https://github.com/rust-av/rust-av", optional = true }
 
