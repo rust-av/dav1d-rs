@@ -1,4 +1,4 @@
-use dav1d_sys::*;
+pub use dav1d_sys::*;
 
 use std::mem;
 use std::ptr;
