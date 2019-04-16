@@ -1,21 +1,16 @@
 [package]
-name = "libdav1d"
-version = "0.2.0"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
-license = "MIT"
 description = "libdav1d bindings"
-repository = "https://github.com/rust-av/dav1d-rs"
-readme = "README.md"
+edition = "2018"
 keywords = ["libdav1d","av1"]
-
-[features]
-default = ["codec-trait"]
-codec-trait = ["av-codec"]
+license = "MIT"
+name = "libdav1d"
+readme = "README.md"
+repository = "https://github.com/rust-av/dav1d-rs"
+version = "0.2.0"
 
 [dependencies]
 dav1d-sys = { version = "0.2.0", path = "dav1d-sys" }
-av-data = { git = "https://github.com/rust-av/rust-av" }
-av-codec = { git = "https://github.com/rust-av/rust-av", optional = true }
 
 [workspace]
 members = ["dav1d-sys"]
