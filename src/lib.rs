@@ -25,6 +25,12 @@ impl Decoder {
         }
     }
 
+    pub fn flush(&self) {
+        unsafe {
+            dav1d_flush(self.dec);
+        }
+    }
+
     pub fn send_data<T: AsRef<[u8]>>(&mut self, buf: T) -> Result<(), i32> {
         let buf = buf.as_ref();
         let len = buf.len();
