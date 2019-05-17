@@ -1,8 +1,12 @@
 pub use dav1d_sys::*;
 
+use std::ffi::c_void;
+use std::i64;
 use std::mem;
 use std::ptr;
+use std::sync::Arc;
 
+#[derive(Debug)]
 pub struct Decoder {
     dec: *mut Dav1dContext,
 }
@@ -47,7 +51,7 @@ impl Decoder {
         }
     }
 
-    pub fn get_picture(&mut self) -> Result<Dav1dPicture, i32> {
+    pub fn get_picture(&mut self) -> Result<Picture, i32> {
         unsafe {
             let mut pic: Dav1dPicture = mem::zeroed();
             let ret = dav1d_get_picture(self.dec, &mut pic);
@@ -55,7 +59,7 @@ impl Decoder {
             if ret < 0 {
                 Err(i32::from(ret))
             } else {
-                Ok(pic)
+                Ok(Picture { pic: Arc::new(pic) })
             }
         }
     }
@@ -64,5 +68,87 @@ impl Decoder {
 impl Drop for Decoder {
     fn drop(&mut self) {
         unsafe { dav1d_close(&mut self.dec) };
+    }
+}
+
+unsafe impl Send for Decoder {}
+
+#[derive(Debug)]
+pub struct Picture {
+    pic: Arc<Dav1dPicture>,
+}
+
+pub enum PixelLayout {
+    I400,
+    I420,
+    I422,
+    I444,
+    Unknown,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct BitsPerComponent(pub usize);
+
+impl Picture {
+    pub fn stride(&self, component: usize) -> i32 {
+        (*self.pic).stride[component] as i32
+    }
+
+    pub fn plane_data(&self, component: usize) -> *mut c_void {
+        (*self.pic).data[component]
+    }
+
+    pub fn bit_depth(&self) -> usize {
+        (*self.pic).p.bpc as usize
+    }
+
+    pub fn bits_per_component(&self) -> Option<BitsPerComponent> {
+        unsafe {
+            match (*(*self.pic).seq_hdr).hbd {
+                0 => Some(BitsPerComponent(8)),
+                1 => Some(BitsPerComponent(10)),
+                2 => Some(BitsPerComponent(12)),
+                _ => None,
+            }
+        }
+    }
+
+    pub fn width(&self) -> u32 {
+        (*self.pic).p.w as u32
+    }
+
+    pub fn height(&self) -> u32 {
+        (*self.pic).p.h as u32
+    }
+
+    pub fn pixel_layout(&self) -> PixelLayout {
+        match (*self.pic).p.layout {
+            Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I400 => PixelLayout::I400,
+            Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
+            Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
+            Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I444 => PixelLayout::I444,
+            _ => PixelLayout::Unknown,
+        }
+    }
+
+    pub fn timestamp(&self) -> Option<i64> {
+        let ts = (*self.pic).m.timestamp;
+        if ts == i64::MIN {
+            None
+        } else {
+            Some(ts)
+        }
+    }
+
+    pub fn duration(&self) -> i64 {
+        (*self.pic).m.duration as i64
+    }
+}
+
+impl Drop for Picture {
+    fn drop(&mut self) {
+        unsafe {
+            dav1d_picture_unref(Arc::get_mut(&mut self.pic).unwrap());
+        }
     }
 }
