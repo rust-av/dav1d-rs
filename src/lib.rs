@@ -167,3 +167,32 @@ impl Drop for Picture {
         }
     }
 }
+
+pub fn parse_sequence_header<T: AsRef<[u8]>>(buf: T) -> Result<SequenceHeader, i32> {
+    let buf = buf.as_ref();
+    let len = buf.len();
+    unsafe {
+        let mut seq: Dav1dSequenceHeader = mem::zeroed();
+        let ret = dav1d_parse_sequence_header(&mut seq, buf.as_ptr(), len);
+        if ret < 0 {
+            Err(i32::from(ret))
+        } else {
+            Ok(SequenceHeader { seq: Arc::new(seq) })
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct SequenceHeader {
+    seq: Arc<Dav1dSequenceHeader>,
+}
+
+impl SequenceHeader {}
+
+impl Drop for SequenceHeader {
+    fn drop(&mut self) {
+        unsafe {
+            Arc::get_mut(&mut self.seq).unwrap();
+        }
+    }
+}
