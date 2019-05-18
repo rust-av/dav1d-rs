@@ -35,13 +35,28 @@ impl Decoder {
         }
     }
 
-    pub fn send_data<T: AsRef<[u8]>>(&mut self, buf: T) -> Result<(), i32> {
+    pub fn send_data<T: AsRef<[u8]>>(
+        &mut self,
+        buf: T,
+        offset: Option<i64>,
+        timestamp: Option<i64>,
+        duration: Option<i64>,
+    ) -> Result<(), i32> {
         let buf = buf.as_ref();
         let len = buf.len();
         unsafe {
             let mut data: Dav1dData = mem::zeroed();
             let ptr = dav1d_data_create(&mut data, len);
             ptr::copy_nonoverlapping(buf.as_ptr(), ptr, len);
+            if let Some(offset) = offset {
+                data.m.offset = offset;
+            }
+            if let Some(timestamp) = timestamp {
+                data.m.timestamp = timestamp;
+            }
+            if let Some(duration) = duration {
+                data.m.duration = duration;
+            }
             let ret = dav1d_send_data(self.dec, &mut data);
             if ret < 0 {
                 Err(i32::from(ret))
