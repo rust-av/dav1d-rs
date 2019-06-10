@@ -8,6 +8,9 @@ repository = "https://github.com/rust-av/dav1d-rs"
 
 build = "build.rs"
 
+[features]
+build = []
+
 [package.metadata.pkg-config]
 dav1d = "0.2.0"
 
