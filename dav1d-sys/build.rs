@@ -11,13 +11,11 @@ use std::path::PathBuf;
 
 #[cfg(feature = "build")]
 mod build {
-
     use super::*;
     use std::path::Path;
     use std::process::Command;
 
     const REPO: &'static str = "https://code.videolan.org/videolan/dav1d.git";
-    const OUTPUT_DIR: &'static str = "target";
 
     macro_rules! runner {
         ($cmd:expr, $($arg:expr),*) => {
@@ -29,12 +27,10 @@ mod build {
     }
 
     pub fn build_from_src() {
-
         let build_dir = "build";
         let release_dir = "release";
 
-        let source = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
-            .join(OUTPUT_DIR);
+        let source = PathBuf::from(env::var("OUT_DIR").unwrap()).join("dav1d");
         let build_path = source.join(build_dir);
         let release_path = source.join(release_dir);
 
@@ -62,7 +58,6 @@ mod build {
         let value = format!("{}/{}", build_path.to_str().unwrap(), &pkg_dir);
         env::set_var(key, &value);
     }
-
 }
 
 #[cfg(feature = "build")]
@@ -84,16 +79,11 @@ fn main() {
         .blacklist_type("max_align_t")
         .rustfmt_bindings(false);
 
-    if cfg!(feature = "build") {
-        let header_path = headers[0].join("dav1d/dav1d.h");
-        builder = builder.header(header_path.to_str().unwrap());
-    } else {
-        builder = builder.header("data/dav1d.h");
-    }
-
     for header in headers {
         builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
     }
+
+    builder = builder.header("data/dav1d.h");
 
     // Manually fix the comment so rustdoc won't try to pick them
     let s = builder

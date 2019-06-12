@@ -1,2 +1,3 @@
-src/aom.rs
-data/aom_build
+target/
+**/*.rs.bk
+Cargo.lock
