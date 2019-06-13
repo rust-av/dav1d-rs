@@ -77,13 +77,11 @@ fn main() {
 
     let mut builder = bindgen::builder()
         .blacklist_type("max_align_t")
-        .rustfmt_bindings(false);
+        .header("data/dav1d.h");
 
     for header in headers {
         builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
     }
-
-    builder = builder.header("data/dav1d.h");
 
     // Manually fix the comment so rustdoc won't try to pick them
     let s = builder
