@@ -8,4 +8,4 @@ edition = "2018"
 dav1d = { path = "..", version = "0.2.0" }
 bitstream-io = "0.8"
 log = "0.4"
-structopt = "0.2"
+structopt = "0.3"
