@@ -1,0 +1,44 @@
+name: dav1d
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install nasm
+      run: |
+        sudo apt-get install nasm
+    - name: Install Python3 packages
+      env:
+        PYTHON3_PKG: python3-setuptools python3-wheel
+      run: |
+        sudo apt-get install $PYTHON3_PKG
+    - name: Install meson and ninja
+      run: |
+        sudo pip3 install meson ninja
+    - name: Install dav1d
+      env:
+        DAV1D_DIR: dav1d_dir
+      run: |
+        git clone https://code.videolan.org/videolan/dav1d.git
+        cd dav1d
+        meson build -Dprefix=$HOME/$DAV1D_DIR --buildtype release
+        ninja -C build
+        ninja -C build install
+    - name: Run tests
+      env:
+        DAV1D_DIR: dav1d_dir
+        PKG_PATH: lib/x86_64-linux-gnu/pkgconfig
+      run: |
+        export PKG_CONFIG_PATH=$HOME/$DAV1D_DIR/$PKG_PATH:$PKG_CONFIG_PATH
+        cargo test --all-features
