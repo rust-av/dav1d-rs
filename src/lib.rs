@@ -14,18 +14,20 @@ pub struct Decoder {
 impl Decoder {
     pub fn new() -> Self {
         unsafe {
-            let mut settings = mem::uninitialized();
-            let mut dec = mem::uninitialized();
+            let mut settings = mem::MaybeUninit::uninit();
+            let mut dec = mem::MaybeUninit::uninit();
 
-            dav1d_default_settings(&mut settings);
+            dav1d_default_settings(settings.as_mut_ptr());
 
-            let ret = dav1d_open(&mut dec, &settings);
+            let settings = settings.assume_init();
+
+            let ret = dav1d_open(dec.as_mut_ptr(), &settings);
 
             if ret != 0 {
                 panic!("Cannot instantiate the default decoder {}", ret);
             }
 
-            Decoder { dec }
+            Decoder { dec: dec.assume_init() }
         }
     }
 
