@@ -193,8 +193,6 @@ impl SequenceHeader {}
 
 impl Drop for SequenceHeader {
     fn drop(&mut self) {
-        unsafe {
-            Arc::get_mut(&mut self.seq).unwrap();
-        }
+        Arc::get_mut(&mut self.seq).unwrap();
     }
 }
