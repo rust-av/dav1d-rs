@@ -11,6 +11,11 @@ pub struct Decoder {
     dec: *mut Dav1dContext,
 }
 
+unsafe extern "C" fn release_wrapped_data(_data: *const u8, cookie: *mut c_void) {
+    let closure: &mut &mut dyn FnMut() = &mut *(cookie as *mut &mut dyn std::ops::FnMut());
+    closure();
+}
+
 impl Default for Decoder {
     fn default() -> Self {
         Self::new()
@@ -84,6 +89,58 @@ impl Decoder {
             } else {
                 Ok(Picture { pic: Arc::new(pic) })
             }
+        }
+    }
+
+    pub fn decode<T: AsRef<[u8]>, F: FnMut()>(
+        &mut self,
+        buf: T,
+        offset: Option<i64>,
+        timestamp: Option<i64>,
+        duration: Option<i64>,
+        mut destroy_notify: F,
+    ) -> Result<Vec<Picture>, i32> {
+        let buf = buf.as_ref();
+        let len = buf.len();
+        unsafe {
+            let mut data: Dav1dData = mem::zeroed();
+            let mut cb: &mut dyn FnMut() = &mut destroy_notify;
+            let cb = &mut cb;
+            let _ret = dav1d_data_wrap(
+                &mut data,
+                buf.as_ptr(),
+                len,
+                Some(release_wrapped_data),
+                cb as *mut _ as *mut c_void,
+            );
+            if let Some(offset) = offset {
+                data.m.offset = offset;
+            }
+            if let Some(timestamp) = timestamp {
+                data.m.timestamp = timestamp;
+            }
+            if let Some(duration) = duration {
+                data.m.duration = duration;
+            }
+            let mut pictures: Vec<Picture> = Vec::new();
+            let again: i32 = EAGAIN as i32;
+            while data.sz > 0 {
+                let ret = dav1d_send_data(self.dec, &mut data);
+                if ret < 0 && ret != -again {
+                    return Err(ret);
+                }
+                match self.get_picture() {
+                    Ok(p) => pictures.push(p),
+                    Err(e) => {
+                        if e == -again {
+                            continue;
+                        } else {
+                            break;
+                        }
+                    }
+                };
+            }
+            Ok(pictures)
         }
     }
 }
