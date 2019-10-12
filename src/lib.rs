@@ -11,6 +11,12 @@ pub struct Decoder {
     dec: *mut Dav1dContext,
 }
 
+impl Default for Decoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Decoder {
     pub fn new() -> Self {
         unsafe {
@@ -61,7 +67,7 @@ impl Decoder {
             }
             let ret = dav1d_send_data(self.dec, &mut data);
             if ret < 0 {
-                Err(i32::from(ret))
+                Err(ret)
             } else {
                 Ok(())
             }
@@ -74,7 +80,7 @@ impl Decoder {
             let ret = dav1d_get_picture(self.dec, &mut pic);
 
             if ret < 0 {
-                Err(i32::from(ret))
+                Err(ret)
             } else {
                 Ok(Picture { pic: Arc::new(pic) })
             }
@@ -177,7 +183,7 @@ pub fn parse_sequence_header<T: AsRef<[u8]>>(buf: T) -> Result<SequenceHeader, i
         let mut seq: Dav1dSequenceHeader = mem::zeroed();
         let ret = dav1d_parse_sequence_header(&mut seq, buf.as_ptr(), len);
         if ret < 0 {
-            Err(i32::from(ret))
+            Err(ret)
         } else {
             Ok(SequenceHeader { seq: Arc::new(seq) })
         }
