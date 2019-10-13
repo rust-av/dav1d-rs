@@ -8,7 +8,7 @@ By default the bindings are generated using the headers and libraries that ought
 
 ## TODO
 - [x] Simple bindings
-- [ ] Safe abstraction
+- [x] Safe abstraction
 - [ ] Examples
 
 [1]: https://github.com/rust-lang-nursery/rust-bindgen
