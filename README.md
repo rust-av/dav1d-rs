@@ -4,7 +4,11 @@ It is a simple [binding][1] and safe abstraction over [dav1d][2].
 
 ## Building
 
-By default the bindings are generated using the headers and libraries that ought to be present in the system.
+By default the bindings are generated using the headers and libraries that ought to be present in the system. However a cargo feature also allows to optionally build and statically link libdav1d into the -sys bindings:
+
+```shell
+$ cargo build --features=build
+```
 
 ## TODO
 - [x] Simple bindings
