@@ -38,7 +38,9 @@ impl Decoder {
                 panic!("Cannot instantiate the default decoder {}", ret);
             }
 
-            Decoder { dec: dec.assume_init() }
+            Decoder {
+                dec: dec.assume_init(),
+            }
         }
     }
 
@@ -87,7 +89,10 @@ impl Decoder {
             if ret < 0 {
                 Err(ret)
             } else {
-                Ok(Picture { pic: Arc::new(pic) })
+                let inner = InnerPicture { pic };
+                Ok(Picture {
+                    inner: Arc::new(inner),
+                })
             }
         }
     }
@@ -154,10 +159,16 @@ impl Drop for Decoder {
 unsafe impl Send for Decoder {}
 
 #[derive(Debug)]
-pub struct Picture {
-    pic: Arc<Dav1dPicture>,
+struct InnerPicture {
+    pub pic: Dav1dPicture,
 }
 
+#[derive(Debug, Clone)]
+pub struct Picture {
+    inner: Arc<InnerPicture>,
+}
+
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum PixelLayout {
     I400,
     I420,
@@ -166,25 +177,91 @@ pub enum PixelLayout {
     Unknown,
 }
 
+#[derive(Eq, PartialEq, Copy, Clone, Debug)]
+pub enum PlanarImageComponent {
+    Y,
+    U,
+    V,
+}
+
+impl std::convert::From<usize> for PlanarImageComponent {
+    fn from(index: usize) -> Self {
+        match index {
+            0 => PlanarImageComponent::Y,
+            1 => PlanarImageComponent::U,
+            2 => PlanarImageComponent::V,
+            _ => panic!("Invalid YUV index: {}", index),
+        }
+    }
+}
+
+impl std::convert::From<PlanarImageComponent> for usize {
+    fn from(component: PlanarImageComponent) -> Self {
+        match component {
+            PlanarImageComponent::Y => 0,
+            PlanarImageComponent::U => 1,
+            PlanarImageComponent::V => 2,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Plane(Picture, PlanarImageComponent);
+
+impl AsRef<[u8]> for Plane {
+    fn as_ref(&self) -> &[u8] {
+        let (stride, height) = self.0.plane_data_geometry(self.1);
+        unsafe {
+            std::slice::from_raw_parts(
+                self.0.plane_data_ptr(self.1) as *const u8,
+                (stride * height) as usize,
+            )
+        }
+    }
+}
+unsafe impl Send for Plane {}
+unsafe impl Sync for Plane {}
+
 #[derive(Copy, Clone, Debug)]
 pub struct BitsPerComponent(pub usize);
 
 impl Picture {
-    pub fn stride(&self, component: usize) -> i32 {
-        (*self.pic).stride[component] as i32
+    pub fn stride(&self, component: PlanarImageComponent) -> u32 {
+        let s = match component {
+            PlanarImageComponent::Y => 0,
+            _ => 1,
+        };
+        (*self.inner).pic.stride[s] as u32
     }
 
-    pub fn plane_data(&self, component: usize) -> *mut c_void {
-        (*self.pic).data[component]
+    pub fn plane_data_ptr(&self, component: PlanarImageComponent) -> *mut c_void {
+        let index: usize = component.into();
+        (*self.inner).pic.data[index]
+    }
+
+    pub fn plane_data_geometry(&self, component: PlanarImageComponent) -> (u32, u32) {
+        let height = match component {
+            PlanarImageComponent::Y => self.height(),
+            _ => match self.pixel_layout() {
+                PixelLayout::I420 => (self.height() + 1) / 2,
+                PixelLayout::I400 | PixelLayout::I422 | PixelLayout::I444 => self.height(),
+                PixelLayout::Unknown => unreachable!(),
+            },
+        };
+        (self.stride(component) as u32, height)
+    }
+
+    pub fn plane(&self, component: PlanarImageComponent) -> Plane {
+        Plane(self.clone(), component)
     }
 
     pub fn bit_depth(&self) -> usize {
-        (*self.pic).p.bpc as usize
+        (*self.inner).pic.p.bpc as usize
     }
 
     pub fn bits_per_component(&self) -> Option<BitsPerComponent> {
         unsafe {
-            match (*(*self.pic).seq_hdr).hbd {
+            match (*(*self.inner).pic.seq_hdr).hbd {
                 0 => Some(BitsPerComponent(8)),
                 1 => Some(BitsPerComponent(10)),
                 2 => Some(BitsPerComponent(12)),
@@ -194,15 +271,16 @@ impl Picture {
     }
 
     pub fn width(&self) -> u32 {
-        (*self.pic).p.w as u32
+        (*self.inner).pic.p.w as u32
     }
 
     pub fn height(&self) -> u32 {
-        (*self.pic).p.h as u32
+        (*self.inner).pic.p.h as u32
     }
 
     pub fn pixel_layout(&self) -> PixelLayout {
-        match (*self.pic).p.layout {
+        #[allow(non_upper_case_globals)]
+        match (*self.inner).pic.p.layout {
             Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I400 => PixelLayout::I400,
             Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
             Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
@@ -212,7 +290,7 @@ impl Picture {
     }
 
     pub fn timestamp(&self) -> Option<i64> {
-        let ts = (*self.pic).m.timestamp;
+        let ts = (*self.inner).pic.m.timestamp;
         if ts == i64::MIN {
             None
         } else {
@@ -221,14 +299,17 @@ impl Picture {
     }
 
     pub fn duration(&self) -> i64 {
-        (*self.pic).m.duration as i64
+        (*self.inner).pic.m.duration as i64
     }
 }
 
-impl Drop for Picture {
+unsafe impl Send for Picture {}
+unsafe impl Sync for Picture {}
+
+impl Drop for InnerPicture {
     fn drop(&mut self) {
         unsafe {
-            dav1d_picture_unref(Arc::get_mut(&mut self.pic).unwrap());
+            dav1d_picture_unref(&mut self.pic);
         }
     }
 }
