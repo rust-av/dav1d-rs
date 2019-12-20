@@ -13,7 +13,7 @@ use std::path::PathBuf;
 mod build {
     use super::*;
     use std::path::Path;
-    use std::process::Command;
+    use std::process::{Command, Stdio};
 
     const REPO: &'static str = "https://code.videolan.org/videolan/dav1d.git";
 
@@ -21,8 +21,11 @@ mod build {
         ($cmd:expr, $($arg:expr),*) => {
             Command::new($cmd)
                 $(.arg($arg))*
+                .stderr(Stdio::inherit())
+                .stdout(Stdio::inherit())
                 .output()
-                .expect(concat!("{} failed", $cmd));
+                .expect(concat!($cmd, " failed"));
+
         };
     }
 
