@@ -7,10 +7,10 @@ license = "MIT"
 name = "dav1d"
 readme = "README.md"
 repository = "https://github.com/rust-av/dav1d-rs"
-version = "0.3.0"
+version = "0.4.0"
 
 [dependencies]
-dav1d-sys = { version = "0.2.0", path = "dav1d-sys" }
+dav1d-sys = { version = "0.3.0", path = "dav1d-sys" }
 
 [workspace]
 members = ["dav1d-sys", "tools"]
