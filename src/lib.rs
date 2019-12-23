@@ -301,6 +301,10 @@ impl Picture {
     pub fn duration(&self) -> i64 {
         (*self.inner).pic.m.duration as i64
     }
+
+    pub fn offset(&self) -> i64 {
+        (*self.inner).pic.m.offset
+    }
 }
 
 unsafe impl Send for Picture {}
