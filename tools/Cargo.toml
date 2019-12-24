@@ -5,7 +5,7 @@ authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 edition = "2018"
 
 [dependencies]
-dav1d = { path = "..", version = "0.4.0" }
+dav1d = { path = "..", version = "0.5.0" }
 bitstream-io = "0.8"
 log = "0.4"
 structopt = "0.3"
