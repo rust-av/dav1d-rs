@@ -9,17 +9,32 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+
     - name: Install nasm
+      env:
+        LINK: http://debian-archive.trafficmanager.net/debian/pool/main/n/nasm
+        NASM_VERSION: 2.14.02-1
       run: |
-        sudo apt-get install nasm
+        curl -LO $LINK/nasm_${NASM_VERSION}_amd64.deb
+        sudo dpkg -i nasm_${NASM_VERSION}_amd64.deb
+
+    - name: Install Rust stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
     - name: Install Python3 packages
       env:
         PYTHON3_PKG: python3-setuptools python3-wheel
       run: |
         sudo apt-get install $PYTHON3_PKG
+
     - name: Install meson and ninja
       run: |
         sudo pip3 install meson ninja
+
     - name: Install dav1d
       env:
         DAV1D_DIR: dav1d_dir
@@ -29,6 +44,7 @@ jobs:
         meson build -Dprefix=$HOME/$DAV1D_DIR --buildtype release
         ninja -C build
         ninja -C build install
+
     - name: Run tests
       env:
         DAV1D_DIR: dav1d_dir
