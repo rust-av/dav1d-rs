@@ -17,6 +17,5 @@ dav1d = "0.2.0"
 [build-dependencies]
 bindgen = "0.53.1"
 metadeps = "1.1.2"
-pkg-config = "0.3.12"
 
 [dependencies]
