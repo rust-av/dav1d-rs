@@ -1,8 +1,3 @@
-// build.rs
-
-extern crate bindgen;
-extern crate metadeps;
-
 use std::env;
 use std::fs::File;
 use std::io::Write;

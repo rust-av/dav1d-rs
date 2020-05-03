@@ -5,6 +5,7 @@ authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to dav1d"
 repository = "https://github.com/rust-av/dav1d-rs"
+edition = "2018"
 
 build = "build.rs"
 
