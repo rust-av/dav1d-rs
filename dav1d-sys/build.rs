@@ -1,8 +1,7 @@
 // build.rs
 
 extern crate bindgen;
-#[cfg(unix)]
-extern crate pkg_config;
+extern crate metadeps;
 
 use std::env;
 use std::fs::File;
@@ -74,7 +73,8 @@ fn main() {
         build_from_src();
     }
 
-    let libs = pkg_config::Config::new().probe("dav1d").unwrap();
+    let libs = metadeps::probe().unwrap();
+    let libs = libs.get("dav1d").unwrap();
 
     let headers = libs.include_paths.clone();
 
