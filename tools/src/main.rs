@@ -1,4 +1,3 @@
-
 mod ivf {
     use bitstream_io::{BitReader, LittleEndian};
     use std::io;
@@ -53,7 +52,7 @@ mod ivf {
 
         let len: u32 = br.read(32)?;
         let pts: u64 = br.read(64)?;
-        let mut buf = vec!(0u8; len as usize);
+        let mut buf = vec![0u8; len as usize];
 
         br.read_bytes(&mut buf)?;
 
@@ -75,8 +74,6 @@ struct Opt {
 use std::fs::File;
 use std::io::BufReader;
 
-
-
 fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
 
@@ -94,12 +91,17 @@ fn main() -> std::io::Result<()> {
             match dec.get_picture() {
                 Ok(p) => unsafe {
                     let frame_hdr = *p.frame_hdr;
-                    println!("  Frame {} {} {}", frame_hdr.frame_id, frame_hdr.show_frame, frame_hdr.showable_frame);
+                    println!(
+                        "  Frame {} {} {}",
+                        frame_hdr.frame_id, frame_hdr.show_frame, frame_hdr.showable_frame
+                    );
                 },
-                Err(e) => if e == -(dav1d::EAGAIN as i32) {
+                Err(e) => {
+                    if e == -(dav1d::EAGAIN as i32) {
                         break;
-                } else {
-                    panic!("Error {}", e);
+                    } else {
+                        panic!("Error {}", e);
+                    }
                 }
             }
         }
