@@ -9,7 +9,7 @@ mod build {
     use std::path::Path;
     use std::process::{Command, Stdio};
 
-    const REPO: &'static str = "https://code.videolan.org/videolan/dav1d.git";
+    const REPO: &str = "https://code.videolan.org/videolan/dav1d.git";
 
     macro_rules! runner {
         ($cmd:expr, $($arg:expr),*) => {
