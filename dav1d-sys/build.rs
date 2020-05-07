@@ -52,7 +52,7 @@ mod build {
         // Set pkg-config path
         let key = "PKG_CONFIG_PATH";
         let pkg_dir = "meson-private";
-        let value = format!("{}/{}", build_path.to_str().unwrap(), &pkg_dir);
+        let value = build_path.join(&pkg_dir);
         env::set_var(key, &value);
     }
 }
