@@ -16,7 +16,7 @@ build = []
 dav1d = "0.2.0"
 
 [build-dependencies]
-bindgen = "0.53.1"
+bindgen = "0.54.0"
 metadeps = "1.1.2"
 
 [dependencies]
