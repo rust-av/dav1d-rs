@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 
-#[cfg(feature = "build")]
 mod build {
     use super::*;
     use std::path::Path;
@@ -23,7 +22,10 @@ mod build {
         };
     }
 
-    pub fn build_from_src() {
+    pub fn build_from_src(
+        lib: &str,
+        version: &str,
+    ) -> Result<system_deps::Library, system_deps::BuildInternalClosureError> {
         let build_dir = "build";
         let release_dir = "release";
 
@@ -49,26 +51,17 @@ mod build {
         runner!("ninja", "-C", build_path.to_str().unwrap());
         runner!("meson", "install", "-C", build_path.to_str().unwrap());
 
-        // Set pkg-config path
-        let key = "PKG_CONFIG_PATH";
-        let pkg_dir = "meson-private";
-        let value = build_path.join(&pkg_dir);
-        env::set_var(key, &value);
+        let pkg_dir = build_path.join("meson-private");
+        system_deps::Library::from_internal_pkg_config(&pkg_dir, lib, version)
     }
 }
 
-#[cfg(feature = "build")]
-pub use self::build::build_from_src;
-
-#[cfg(not(feature = "build"))]
-fn build_from_src() {}
-
 fn main() {
-    if cfg!(feature = "build") {
-        build_from_src();
-    }
+    let libs = system_deps::Config::new()
+        .add_build_internal("dav1d", |lib, version| build::build_from_src(lib, version))
+        .probe()
+        .unwrap();
 
-    let libs = metadeps::probe().unwrap();
     let libs = libs.get("dav1d").unwrap();
 
     let headers = libs.include_paths.clone();
