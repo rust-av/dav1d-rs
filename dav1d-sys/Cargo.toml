@@ -9,14 +9,11 @@ edition = "2018"
 
 build = "build.rs"
 
-[features]
-build = []
-
-[package.metadata.pkg-config]
+[package.metadata.system-deps]
 dav1d = "0.2.0"
 
 [build-dependencies]
 bindgen = "0.54.0"
-metadeps = "1.1.2"
+system-deps = "1.3"
 
 [dependencies]

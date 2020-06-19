@@ -14,6 +14,3 @@ dav1d-sys = { version = "0.3.2", path = "dav1d-sys" }
 
 [workspace]
 members = ["dav1d-sys", "tools"]
-
-[features]
-build = ["dav1d-sys/build"]
