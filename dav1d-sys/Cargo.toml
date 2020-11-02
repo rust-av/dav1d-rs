@@ -14,6 +14,6 @@ dav1d = "0.2.0"
 
 [build-dependencies]
 bindgen = "0.54.0"
-system-deps = "1.3"
+system-deps = "2.0"
 
 [dependencies]
