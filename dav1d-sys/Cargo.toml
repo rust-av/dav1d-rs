@@ -13,7 +13,7 @@ build = "build.rs"
 dav1d = "0.2.0"
 
 [build-dependencies]
-bindgen = "0.54.0"
+bindgen = "0.56.0"
 system-deps = "1.3"
 
 [dependencies]
