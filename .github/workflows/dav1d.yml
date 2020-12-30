@@ -11,12 +11,7 @@ jobs:
     - uses: actions/checkout@v1
 
     - name: Install nasm
-      env:
-        LINK: http://debian-archive.trafficmanager.net/debian/pool/main/n/nasm
-        NASM_VERSION: 2.14.02-1
-      run: |
-        curl -LO $LINK/nasm_${NASM_VERSION}_amd64.deb
-        sudo dpkg -i nasm_${NASM_VERSION}_amd64.deb
+      uses: ilammy/setup-nasm@v1
 
     - name: Install Rust stable
       uses: actions-rs/toolchain@v1
