@@ -1,4 +1,4 @@
-pub use dav1d_sys::*;
+use dav1d_sys::*;
 
 use std::ffi::c_void;
 use std::i64;
