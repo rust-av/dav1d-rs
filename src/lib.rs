@@ -1,10 +1,33 @@
 use dav1d_sys::*;
 
 use std::ffi::c_void;
+use std::fmt;
 use std::i64;
 use std::mem;
 use std::ptr;
 use std::sync::Arc;
+
+#[derive(Debug)]
+pub struct Error(i32);
+
+impl Error {
+    const fn is_again(&self) -> bool {
+        const AGAIN: i32 = EAGAIN as i32;
+        if AGAIN < 0 {
+            self.0 == AGAIN
+        } else {
+            self.0 == -AGAIN
+        }
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        write!(fmt, "{}", self.0)
+    }
+}
+
+impl std::error::Error for Error {}
 
 #[derive(Debug)]
 pub struct Decoder {
@@ -56,7 +79,7 @@ impl Decoder {
         offset: Option<i64>,
         timestamp: Option<i64>,
         duration: Option<i64>,
-    ) -> Result<(), i32> {
+    ) -> Result<(), Error> {
         let buf = buf.as_ref();
         let len = buf.len();
         unsafe {
@@ -74,20 +97,20 @@ impl Decoder {
             }
             let ret = dav1d_send_data(self.dec, &mut data);
             if ret < 0 {
-                Err(ret)
+                Err(Error(ret))
             } else {
                 Ok(())
             }
         }
     }
 
-    pub fn get_picture(&mut self) -> Result<Picture, i32> {
+    pub fn get_picture(&mut self) -> Result<Picture, Error> {
         unsafe {
             let mut pic: Dav1dPicture = mem::zeroed();
             let ret = dav1d_get_picture(self.dec, &mut pic);
 
             if ret < 0 {
-                Err(ret)
+                Err(Error(ret))
             } else {
                 let inner = InnerPicture { pic };
                 Ok(Picture {
@@ -104,7 +127,7 @@ impl Decoder {
         timestamp: Option<i64>,
         duration: Option<i64>,
         mut destroy_notify: F,
-    ) -> Result<Vec<Picture>, i32> {
+    ) -> Result<Vec<Picture>, Error> {
         let buf = buf.as_ref();
         let len = buf.len();
         unsafe {
@@ -128,16 +151,16 @@ impl Decoder {
                 data.m.duration = duration;
             }
             let mut pictures: Vec<Picture> = Vec::new();
-            let again: i32 = EAGAIN as i32;
             while data.sz > 0 {
                 let ret = dav1d_send_data(self.dec, &mut data);
-                if ret < 0 && ret != -again {
-                    return Err(ret);
+                let err = Error(ret);
+                if ret < 0 && !err.is_again() {
+                    return Err(err);
                 }
                 match self.get_picture() {
                     Ok(p) => pictures.push(p),
                     Err(e) => {
-                        if e == -again {
+                        if e.is_again() {
                             continue;
                         } else {
                             break;
@@ -318,14 +341,14 @@ impl Drop for InnerPicture {
     }
 }
 
-pub fn parse_sequence_header<T: AsRef<[u8]>>(buf: T) -> Result<SequenceHeader, i32> {
+pub fn parse_sequence_header<T: AsRef<[u8]>>(buf: T) -> Result<SequenceHeader, Error> {
     let buf = buf.as_ref();
     let len = buf.len();
     unsafe {
         let mut seq: Dav1dSequenceHeader = mem::zeroed();
         let ret = dav1d_parse_sequence_header(&mut seq, buf.as_ptr(), len);
         if ret < 0 {
-            Err(ret)
+            Err(Error(ret))
         } else {
             Ok(SequenceHeader { seq: Arc::new(seq) })
         }
