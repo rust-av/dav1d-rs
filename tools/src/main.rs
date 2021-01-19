@@ -1,5 +1,5 @@
 mod ivf {
-    use bitstream_io::{BitReader, LittleEndian};
+    use bitstream_io::{BitRead, BitReader, LittleEndian};
     use std::io;
 
     #[derive(Debug, PartialEq)]
@@ -86,18 +86,12 @@ fn main() -> std::io::Result<()> {
 
     while let Ok(packet) = ivf::read_packet(&mut r) {
         println!("Packet {}", packet.pts);
-        dec.send_data(packet.data);
+        dec.send_data(packet.data, None, None, None).unwrap();
         loop {
             match dec.get_picture() {
-                Ok(p) => unsafe {
-                    let frame_hdr = *p.frame_hdr;
-                    println!(
-                        "  Frame {} {} {}",
-                        frame_hdr.frame_id, frame_hdr.show_frame, frame_hdr.showable_frame
-                    );
-                },
+                Ok(p) => println!("{:?}", p),
                 Err(e) => {
-                    if e == -(dav1d::EAGAIN as i32) {
+                    if e.is_again() {
                         break;
                     } else {
                         panic!("Error {}", e);
