@@ -11,7 +11,7 @@ use std::sync::Arc;
 pub struct Error(i32);
 
 impl Error {
-    const fn is_again(&self) -> bool {
+    pub const fn is_again(&self) -> bool {
         const AGAIN: i32 = EAGAIN as i32;
         if AGAIN < 0 {
             self.0 == AGAIN
