@@ -1,45 +1,38 @@
 name: dav1d
-
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+  - cron: '0 6 * * 1'
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v1
-
+    - uses: actions/checkout@v2
     - name: Install nasm
       uses: ilammy/setup-nasm@v1
-
     - name: Install Rust stable
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
         override: true
-
-    - name: Install Python3 packages
-      env:
-        PYTHON3_PKG: python3-setuptools python3-wheel
+    - uses: actions/setup-python@v2
+    - name: Install pip packages
       run: |
-        sudo apt-get install $PYTHON3_PKG
-
-    - name: Install meson and ninja
-      run: |
-        sudo pip3 install meson ninja
-
+        pip install -U pip
+        pip install -U wheel setuptools
+        pip install -U meson ninja
     - name: Install dav1d
       env:
         DAV1D_DIR: dav1d_dir
       run: |
-        git clone https://code.videolan.org/videolan/dav1d.git
+        git clone --depth 1 https://code.videolan.org/videolan/dav1d.git
         cd dav1d
         meson build -Dprefix=$HOME/$DAV1D_DIR --buildtype release
         ninja -C build
         ninja -C build install
-
     - name: Run tests
       env:
         DAV1D_DIR: dav1d_dir
