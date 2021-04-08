@@ -62,12 +62,10 @@ fn main() {
         .probe()
         .unwrap();
 
-    let libs = libs.get("dav1d").unwrap();
-
-    let headers = libs.include_paths.clone();
+    let headers = libs.all_include_paths();
 
     let mut builder = bindgen::builder()
-        .blacklist_type("max_align_t")
+        .blocklist_type("max_align_t")
         .size_t_is_usize(true)
         .header("data/dav1d.h");
 
