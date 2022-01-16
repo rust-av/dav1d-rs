@@ -1,19 +1,19 @@
 [package]
 name = "dav1d-sys"
-version = "0.3.4"
+version = "0.3.5"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to dav1d"
 repository = "https://github.com/rust-av/dav1d-rs"
-edition = "2018"
+edition = "2021"
 
 build = "build.rs"
 
 [package.metadata.system-deps]
-dav1d = "0.2.0"
+dav1d = "0.9.0"
 
 [build-dependencies]
-bindgen = "0.56.0"
-system-deps = "2.0"
+bindgen = "0.59.1"
+system-deps = "6.0"
 
 [dependencies]
