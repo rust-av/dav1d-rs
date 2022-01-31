@@ -80,6 +80,96 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+/// Settings for creating a new [`Decoder`] instance.
+/// See documentation for native `Dav1dSettings` struct.
+#[derive(Debug)]
+pub struct Settings {
+    dav1d_settings: Dav1dSettings,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Settings {
+    /// Creates a new [`Settings`] instance with default settings.
+    pub fn new() -> Self {
+        unsafe {
+            let mut dav1d_settings = mem::MaybeUninit::uninit();
+
+            dav1d_default_settings(dav1d_settings.as_mut_ptr());
+
+            Self {
+                dav1d_settings: dav1d_settings.assume_init(),
+            }
+        }
+    }
+
+    pub fn set_n_frame_threads(self: &mut Self, n_frame_threads: u32) {
+        self.dav1d_settings.n_frame_threads = n_frame_threads as i32;
+    }
+
+    pub fn get_n_frame_threads(self: &mut Self) -> u32 {
+        self.dav1d_settings.n_frame_threads as u32
+    }
+
+
+    pub fn set_n_tile_threads(self: &mut Self, n_tile_threads: u32) {
+        self.dav1d_settings.n_tile_threads = n_tile_threads as i32;
+    }
+
+    pub fn get_n_tile_threads(self: &mut Self) -> u32 {
+        self.dav1d_settings.n_tile_threads as u32
+    }
+
+
+    pub fn set_apply_grain(self: &mut Self, apply_grain: bool) {
+        self.dav1d_settings.apply_grain = if apply_grain { 1 } else { 0 };
+    }
+
+    pub fn get_apply_grain(self: &mut Self) -> bool {
+        self.dav1d_settings.apply_grain != 0
+    }
+
+
+    pub fn set_operating_point(self: &mut Self, operating_point: u32) {
+        self.dav1d_settings.operating_point = operating_point as i32;
+    }
+
+    pub fn get_operating_point(self: &mut Self) -> u32 {
+        self.dav1d_settings.operating_point as u32
+    }
+
+
+    pub fn set_all_layers(self: &mut Self, all_layers: bool) {
+        self.dav1d_settings.all_layers = if all_layers { 1 } else { 0 };
+    }
+
+    pub fn get_all_layers(self: &mut Self) -> bool {
+        self.dav1d_settings.all_layers != 0
+    }
+
+
+    pub fn set_frame_size_limit(self: &mut Self, frame_size_limit: u32) {
+        self.dav1d_settings.frame_size_limit = frame_size_limit;
+    }
+
+    pub fn get_frame_size_limit(self: &mut Self) -> u32 {
+        self.dav1d_settings.frame_size_limit
+    }
+
+
+    pub fn set_n_postfilter_threads(self: &mut Self, n_postfilter_threads: u32) {
+        self.dav1d_settings.n_postfilter_threads = n_postfilter_threads as i32;
+    }
+
+    pub fn get_n_postfilter_threads(self: &mut Self) -> u32 {
+        self.dav1d_settings.n_postfilter_threads as u32
+    }
+}
+
 /// A `dav1d` decoder instance.
 #[derive(Debug)]
 pub struct Decoder {
@@ -93,17 +183,12 @@ unsafe extern "C" fn release_wrapped_data<T: AsRef<[u8]>>(_data: *const u8, cook
 }
 
 impl Decoder {
-    /// Creates a new [`Decoder`] instance with the default settings.
-    pub fn new() -> Result<Self, Error> {
+    /// Creates a new [`Decoder`] instance with given [`Settings`].
+    pub fn with_settings(settings: &Settings) -> Result<Self, Error> {
         unsafe {
-            let mut settings = mem::MaybeUninit::uninit();
             let mut dec = mem::MaybeUninit::uninit();
 
-            dav1d_default_settings(settings.as_mut_ptr());
-
-            let settings = settings.assume_init();
-
-            let ret = dav1d_open(dec.as_mut_ptr(), &settings);
+            let ret = dav1d_open(dec.as_mut_ptr(), &settings.dav1d_settings);
 
             if ret < 0 {
                 return Err(Error::from(ret));
@@ -114,6 +199,11 @@ impl Decoder {
                 pending_data: None,
             })
         }
+    }
+
+    /// Creates a new [`Decoder`] instance with the default settings.
+    pub fn new() -> Result<Self, Error> {
+        Self::with_settings(&Settings::default())
     }
 
     /// Flush the decoder.
