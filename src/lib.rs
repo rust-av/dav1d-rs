@@ -4,7 +4,6 @@ use std::ffi::c_void;
 use std::fmt;
 use std::i64;
 use std::mem;
-use std::ptr;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -32,6 +31,7 @@ impl std::error::Error for Error {}
 #[derive(Debug)]
 pub struct Decoder {
     dec: *mut Dav1dContext,
+    pending_data: Option<Dav1dData>,
 }
 
 unsafe extern "C" fn release_wrapped_data<T: AsRef<[u8]>>(_data: *const u8, cookie: *mut c_void) {
@@ -63,29 +63,45 @@ impl Decoder {
 
             Decoder {
                 dec: dec.assume_init(),
+                pending_data: None,
             }
         }
     }
 
-    pub fn flush(&self) {
+    pub fn flush(&mut self) {
         unsafe {
             dav1d_flush(self.dec);
+            if let Some(mut pending_data) = self.pending_data.take() {
+                dav1d_data_unref(&mut pending_data);
+            }
         }
     }
 
-    pub fn send_data<T: AsRef<[u8]>>(
+    pub fn send_data<T: AsRef<[u8]> + Send + 'static>(
         &mut self,
         buf: T,
         offset: Option<i64>,
         timestamp: Option<i64>,
         duration: Option<i64>,
     ) -> Result<(), Error> {
-        let buf = buf.as_ref();
-        let len = buf.len();
+        assert!(
+            self.pending_data.is_none(),
+            "Have pending data that needs to be handled first"
+        );
+
+        let buf = Box::new(buf);
+        let slice = (*buf).as_ref();
+        let len = slice.len();
+
         unsafe {
             let mut data: Dav1dData = mem::zeroed();
-            let ptr = dav1d_data_create(&mut data, len);
-            ptr::copy_nonoverlapping(buf.as_ptr(), ptr, len);
+            let _ret = dav1d_data_wrap(
+                &mut data,
+                slice.as_ptr(),
+                len,
+                Some(release_wrapped_data::<T>),
+                Box::into_raw(buf) as *mut c_void,
+            );
             if let Some(offset) = offset {
                 data.m.offset = offset;
             }
@@ -97,7 +113,41 @@ impl Decoder {
             }
             let ret = dav1d_send_data(self.dec, &mut data);
             if ret < 0 {
-                Err(Error(ret))
+                let ret = Error(ret);
+
+                if ret.is_again() {
+                    self.pending_data = Some(data);
+                } else {
+                    dav1d_data_unref(&mut data);
+                }
+
+                Err(ret)
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    pub fn send_pending_data(&mut self) -> Result<(), Error> {
+        let mut data = match self.pending_data.take() {
+            None => {
+                return Ok(());
+            }
+            Some(data) => data,
+        };
+
+        unsafe {
+            let ret = dav1d_send_data(self.dec, &mut data);
+            if ret < 0 {
+                let ret = Error(ret);
+
+                if ret.is_again() {
+                    self.pending_data = Some(data);
+                } else {
+                    dav1d_data_unref(&mut data);
+                }
+
+                Err(ret)
             } else {
                 Ok(())
             }
@@ -119,61 +169,16 @@ impl Decoder {
             }
         }
     }
-
-    pub fn decode<T: AsRef<[u8]> + 'static>(
-        &mut self,
-        buf: T,
-        offset: Option<i64>,
-        timestamp: Option<i64>,
-        duration: Option<i64>,
-    ) -> Result<Vec<Picture>, Error> {
-        let buf = Box::new(buf);
-        let slice = (*buf).as_ref();
-        let len = slice.len();
-        unsafe {
-            let mut data: Dav1dData = mem::zeroed();
-            let _ret = dav1d_data_wrap(
-                &mut data,
-                slice.as_ptr(),
-                len,
-                Some(release_wrapped_data::<T>),
-                Box::into_raw(buf) as *mut c_void,
-            );
-            if let Some(offset) = offset {
-                data.m.offset = offset;
-            }
-            if let Some(timestamp) = timestamp {
-                data.m.timestamp = timestamp;
-            }
-            if let Some(duration) = duration {
-                data.m.duration = duration;
-            }
-            let mut pictures: Vec<Picture> = Vec::new();
-            while data.sz > 0 {
-                let ret = dav1d_send_data(self.dec, &mut data);
-                let err = Error(ret);
-                if ret < 0 && !err.is_again() {
-                    return Err(err);
-                }
-                match self.get_picture() {
-                    Ok(p) => pictures.push(p),
-                    Err(e) => {
-                        if e.is_again() {
-                            continue;
-                        } else {
-                            break;
-                        }
-                    }
-                };
-            }
-            Ok(pictures)
-        }
-    }
 }
 
 impl Drop for Decoder {
     fn drop(&mut self) {
-        unsafe { dav1d_close(&mut self.dec) };
+        unsafe {
+            if let Some(mut pending_data) = self.pending_data.take() {
+                dav1d_data_unref(&mut pending_data);
+            }
+            dav1d_close(&mut self.dec);
+        };
     }
 }
 
