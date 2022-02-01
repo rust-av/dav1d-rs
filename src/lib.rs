@@ -34,9 +34,9 @@ pub struct Decoder {
     dec: *mut Dav1dContext,
 }
 
-unsafe extern "C" fn release_wrapped_data(_data: *const u8, cookie: *mut c_void) {
-    let closure: &mut &mut dyn FnMut() = &mut *(cookie as *mut &mut dyn std::ops::FnMut());
-    closure();
+unsafe extern "C" fn release_wrapped_data<T: AsRef<[u8]>>(_data: *const u8, cookie: *mut c_void) {
+    let buf = Box::from_raw(cookie as *mut T);
+    drop(buf);
 }
 
 impl Default for Decoder {
@@ -120,26 +120,24 @@ impl Decoder {
         }
     }
 
-    pub fn decode<T: AsRef<[u8]>, F: FnMut()>(
+    pub fn decode<T: AsRef<[u8]> + 'static>(
         &mut self,
         buf: T,
         offset: Option<i64>,
         timestamp: Option<i64>,
         duration: Option<i64>,
-        mut destroy_notify: F,
     ) -> Result<Vec<Picture>, Error> {
-        let buf = buf.as_ref();
-        let len = buf.len();
+        let buf = Box::new(buf);
+        let slice = (*buf).as_ref();
+        let len = slice.len();
         unsafe {
             let mut data: Dav1dData = mem::zeroed();
-            let mut cb: &mut dyn FnMut() = &mut destroy_notify;
-            let cb = &mut cb;
             let _ret = dav1d_data_wrap(
                 &mut data,
-                buf.as_ptr(),
+                slice.as_ptr(),
                 len,
-                Some(release_wrapped_data),
-                cb as *mut _ as *mut c_void,
+                Some(release_wrapped_data::<T>),
+                Box::into_raw(buf) as *mut c_void,
             );
             if let Some(offset) = offset {
                 data.m.offset = offset;
