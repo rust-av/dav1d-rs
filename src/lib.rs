@@ -4,6 +4,7 @@ use std::ffi::c_void;
 use std::fmt;
 use std::i64;
 use std::mem;
+use std::ptr;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -30,7 +31,7 @@ impl std::error::Error for Error {}
 
 #[derive(Debug)]
 pub struct Decoder {
-    dec: *mut Dav1dContext,
+    dec: ptr::NonNull<Dav1dContext>,
     pending_data: Option<Dav1dData>,
 }
 
@@ -62,7 +63,7 @@ impl Decoder {
             }
 
             Decoder {
-                dec: dec.assume_init(),
+                dec: ptr::NonNull::new(dec.assume_init()).unwrap(),
                 pending_data: None,
             }
         }
@@ -70,7 +71,7 @@ impl Decoder {
 
     pub fn flush(&mut self) {
         unsafe {
-            dav1d_flush(self.dec);
+            dav1d_flush(self.dec.as_ptr());
             if let Some(mut pending_data) = self.pending_data.take() {
                 dav1d_data_unref(&mut pending_data);
             }
@@ -111,7 +112,7 @@ impl Decoder {
             if let Some(duration) = duration {
                 data.m.duration = duration;
             }
-            let ret = dav1d_send_data(self.dec, &mut data);
+            let ret = dav1d_send_data(self.dec.as_ptr(), &mut data);
             if ret < 0 {
                 let ret = Error(ret);
 
@@ -137,7 +138,7 @@ impl Decoder {
         };
 
         unsafe {
-            let ret = dav1d_send_data(self.dec, &mut data);
+            let ret = dav1d_send_data(self.dec.as_ptr(), &mut data);
             if ret < 0 {
                 let ret = Error(ret);
 
@@ -157,7 +158,7 @@ impl Decoder {
     pub fn get_picture(&mut self) -> Result<Picture, Error> {
         unsafe {
             let mut pic: Dav1dPicture = mem::zeroed();
-            let ret = dav1d_get_picture(self.dec, &mut pic);
+            let ret = dav1d_get_picture(self.dec.as_ptr(), &mut pic);
 
             if ret < 0 {
                 Err(Error(ret))
@@ -177,7 +178,8 @@ impl Drop for Decoder {
             if let Some(mut pending_data) = self.pending_data.take() {
                 dav1d_data_unref(&mut pending_data);
             }
-            dav1d_close(&mut self.dec);
+            let mut dec = self.dec.as_ptr();
+            dav1d_close(&mut dec);
         };
     }
 }
