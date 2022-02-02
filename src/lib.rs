@@ -19,6 +19,15 @@ impl Error {
             self.0 == -AGAIN
         }
     }
+
+    fn again() -> Self {
+        const AGAIN: i32 = EAGAIN as i32;
+        if AGAIN < 0 {
+            Self(AGAIN)
+        } else {
+            Self(-AGAIN)
+        }
+    }
 }
 
 impl fmt::Display for Error {
@@ -112,6 +121,7 @@ impl Decoder {
             if let Some(duration) = duration {
                 data.m.duration = duration;
             }
+
             let ret = dav1d_send_data(self.dec.as_ptr(), &mut data);
             if ret < 0 {
                 let ret = Error(ret);
@@ -122,10 +132,15 @@ impl Decoder {
                     dav1d_data_unref(&mut data);
                 }
 
-                Err(ret)
-            } else {
-                Ok(())
+                return Err(ret);
             }
+
+            if data.sz > 0 {
+                self.pending_data = Some(data);
+                return Err(Error::again());
+            }
+
+            Ok(())
         }
     }
 
@@ -148,10 +163,15 @@ impl Decoder {
                     dav1d_data_unref(&mut data);
                 }
 
-                Err(ret)
-            } else {
-                Ok(())
+                return Err(ret);
             }
+
+            if data.sz > 0 {
+                self.pending_data = Some(data);
+                return Err(Error::again());
+            }
+
+            Ok(())
         }
     }
 
