@@ -8,31 +8,54 @@ use std::ptr;
 use std::sync::Arc;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct Error(i32);
+#[non_exhaustive]
+pub enum Error {
+    Again,
+    InvalidArgument,
+    NotEnoughMemory,
+    UnsupportedBitstream,
+    UnknownError(i32),
+}
+
+impl From<i32> for Error {
+    fn from(err: i32) -> Self {
+        assert!(err < 0);
+
+        // Convert to i32
+        const AGAIN: i32 = EAGAIN as i32;
+        const INVAL: i32 = EINVAL as i32;
+        const NOMEM: i32 = ENOMEM as i32;
+        const NOPROTOOPT: i32 = ENOPROTOOPT as i32;
+
+        // Correctly handle non-negative errnos
+        #[allow(unused_comparisons)]
+        let err = if EPERM < 0 { err } else { -err };
+
+        match err {
+            AGAIN => Error::Again,
+            INVAL => Error::InvalidArgument,
+            NOMEM => Error::NotEnoughMemory,
+            NOPROTOOPT => Error::UnsupportedBitstream,
+            _ => Error::UnknownError(err),
+        }
+    }
+}
 
 impl Error {
     pub const fn is_again(&self) -> bool {
-        const AGAIN: i32 = EAGAIN as i32;
-        if AGAIN < 0 {
-            self.0 == AGAIN
-        } else {
-            self.0 == -AGAIN
-        }
-    }
-
-    fn again() -> Self {
-        const AGAIN: i32 = EAGAIN as i32;
-        if AGAIN < 0 {
-            Self(AGAIN)
-        } else {
-            Self(-AGAIN)
-        }
+        matches!(self, Error::Again)
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        write!(fmt, "{}", self.0)
+        match self {
+            Error::Again => write!(fmt, "Try again"),
+            Error::InvalidArgument => write!(fmt, "Invalid argument"),
+            Error::NotEnoughMemory => write!(fmt, "Not enough memory available"),
+            Error::UnsupportedBitstream => write!(fmt, "Unsupported bitstream"),
+            Error::UnknownError(err) => write!(fmt, "Unknown error {}", err),
+        }
     }
 }
 
@@ -124,7 +147,7 @@ impl Decoder {
 
             let ret = dav1d_send_data(self.dec.as_ptr(), &mut data);
             if ret < 0 {
-                let ret = Error(ret);
+                let ret = Error::from(ret);
 
                 if ret.is_again() {
                     self.pending_data = Some(data);
@@ -137,7 +160,7 @@ impl Decoder {
 
             if data.sz > 0 {
                 self.pending_data = Some(data);
-                return Err(Error::again());
+                return Err(Error::Again);
             }
 
             Ok(())
@@ -155,7 +178,7 @@ impl Decoder {
         unsafe {
             let ret = dav1d_send_data(self.dec.as_ptr(), &mut data);
             if ret < 0 {
-                let ret = Error(ret);
+                let ret = Error::from(ret);
 
                 if ret.is_again() {
                     self.pending_data = Some(data);
@@ -168,7 +191,7 @@ impl Decoder {
 
             if data.sz > 0 {
                 self.pending_data = Some(data);
-                return Err(Error::again());
+                return Err(Error::Again);
             }
 
             Ok(())
@@ -181,7 +204,7 @@ impl Decoder {
             let ret = dav1d_get_picture(self.dec.as_ptr(), &mut pic);
 
             if ret < 0 {
-                Err(Error(ret))
+                Err(Error::from(ret))
             } else {
                 let inner = InnerPicture { pic };
                 Ok(Picture {
@@ -374,7 +397,7 @@ pub fn parse_sequence_header<T: AsRef<[u8]>>(buf: T) -> Result<SequenceHeader, E
         let mut seq: Dav1dSequenceHeader = mem::zeroed();
         let ret = dav1d_parse_sequence_header(&mut seq, buf.as_ptr(), len);
         if ret < 0 {
-            Err(Error(ret))
+            Err(Error::from(ret))
         } else {
             Ok(SequenceHeader { seq: Arc::new(seq) })
         }
