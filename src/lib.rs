@@ -249,7 +249,7 @@ pub enum PlanarImageComponent {
     V,
 }
 
-impl std::convert::From<usize> for PlanarImageComponent {
+impl From<usize> for PlanarImageComponent {
     fn from(index: usize) -> Self {
         match index {
             0 => PlanarImageComponent::Y,
@@ -260,7 +260,7 @@ impl std::convert::From<usize> for PlanarImageComponent {
     }
 }
 
-impl std::convert::From<PlanarImageComponent> for usize {
+impl From<PlanarImageComponent> for usize {
     fn from(component: PlanarImageComponent) -> Self {
         match component {
             PlanarImageComponent::Y => 0,
