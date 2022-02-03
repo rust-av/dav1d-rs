@@ -284,6 +284,15 @@ impl AsRef<[u8]> for Plane {
         }
     }
 }
+
+impl std::ops::Deref for Plane {
+    type Target = [u8];
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
 unsafe impl Send for Plane {}
 unsafe impl Sync for Plane {}
 
