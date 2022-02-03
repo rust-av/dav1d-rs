@@ -7,13 +7,32 @@ use std::mem;
 use std::ptr;
 use std::sync::Arc;
 
+/// Error enum return by various `dav1d` operations.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Error {
+    /// Try again.
+    ///
+    /// If this is returned by [`Decoder::send_data`] or [`Decoder::send_pending_data`] then there
+    /// are decoded frames pending that first have to be retrieved via [`Decoder::get_picture`]
+    /// before processing any further pending data.
+    ///
+    /// If this is returned by [`Decoder::get_picture`] then no decoded frames are pending
+    /// currently and more data needs to be sent to the decoder.
     Again,
+    /// Invalid argument.
+    ///
+    /// One of the arguments passed to the function was invalid.
     InvalidArgument,
+    /// Not enough memory.
+    ///
+    /// Not enough memory is currently available for performing this operation.
     NotEnoughMemory,
+    /// Unsupported bitstream.
+    ///
+    /// The provided bitstream is not supported by `dav1d`.
     UnsupportedBitstream,
+    /// Unknown error.
     UnknownError(i32),
 }
 
@@ -61,6 +80,7 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+/// A `dav1d` decoder instance.
 #[derive(Debug)]
 pub struct Decoder {
     dec: ptr::NonNull<Dav1dContext>,
@@ -73,6 +93,7 @@ unsafe extern "C" fn release_wrapped_data<T: AsRef<[u8]>>(_data: *const u8, cook
 }
 
 impl Decoder {
+    /// Creates a new [`Decoder`] instance with the default settings.
     pub fn new() -> Result<Self, Error> {
         unsafe {
             let mut settings = mem::MaybeUninit::uninit();
@@ -95,6 +116,11 @@ impl Decoder {
         }
     }
 
+    /// Flush the decoder.
+    ///
+    /// This flushes all delayed frames in the decoder and clears the internal decoder state.
+    ///
+    /// All currently pending frames are available afterwards via [`Decoder::get_picture`].
     pub fn flush(&mut self) {
         unsafe {
             dav1d_flush(self.dec.as_ptr());
@@ -104,6 +130,15 @@ impl Decoder {
         }
     }
 
+    /// Send new AV1 data to the decoder.
+    ///
+    /// After this returned `Ok(())` or `Err([Error::Again])` there might be decoded frames
+    /// available via [`Decoder::get_picture`].
+    ///
+    /// # Panics
+    ///
+    /// If a previous call returned [`Error::Again`] then this must not be called again until
+    /// [`Decoder::send_pending_data`] has returned `Ok(())`.
     pub fn send_data<T: AsRef<[u8]> + Send + 'static>(
         &mut self,
         buf: T,
@@ -161,6 +196,13 @@ impl Decoder {
         }
     }
 
+    /// Sends any pending data to the decoder.
+    ///
+    /// This has to be called after [`Decoder::send_data`] has returned `Err([Error::Again])` to
+    /// consume any futher pending data.
+    ///
+    /// After this returned `Ok(())` or `Err([Error::Again])` there might be decoded frames
+    /// available via [`Decoder::get_picture`].
     pub fn send_pending_data(&mut self) -> Result<(), Error> {
         let mut data = match self.pending_data.take() {
             None => {
@@ -192,6 +234,10 @@ impl Decoder {
         }
     }
 
+    /// Get the next decoded frame from the decoder.
+    ///
+    /// If this returns `Err([Error::Again])` then further data has to be sent to the decoder
+    /// before further decoded frames become available.
     pub fn get_picture(&mut self) -> Result<Picture, Error> {
         unsafe {
             let mut pic: Dav1dPicture = mem::zeroed();
@@ -229,23 +275,33 @@ struct InnerPicture {
     pub pic: Dav1dPicture,
 }
 
+/// A decoded frame.
 #[derive(Debug, Clone)]
 pub struct Picture {
     inner: Arc<InnerPicture>,
 }
 
+/// Pixel layout of a frame.
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum PixelLayout {
+    /// Monochrome.
     I400,
+    /// 4:2:0 planar.
     I420,
+    /// 4:2:2 planar.
     I422,
+    /// 4:4:4 planar.
     I444,
 }
 
+/// Frame component.
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
 pub enum PlanarImageComponent {
+    /// Y component.
     Y,
+    /// U component.
     U,
+    /// V component.
     V,
 }
 
@@ -270,6 +326,9 @@ impl From<PlanarImageComponent> for usize {
     }
 }
 
+/// A single plane of a decoded frame.
+///
+/// This can be used like a `&[u8]`.
 #[derive(Clone, Debug)]
 pub struct Plane(Picture, PlanarImageComponent);
 
@@ -296,10 +355,12 @@ impl std::ops::Deref for Plane {
 unsafe impl Send for Plane {}
 unsafe impl Sync for Plane {}
 
+/// Number of bits per component.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct BitsPerComponent(pub usize);
 
 impl Picture {
+    /// Stride in pixels of the `component` for the decoded frame.
     pub fn stride(&self, component: PlanarImageComponent) -> u32 {
         let s = match component {
             PlanarImageComponent::Y => 0,
@@ -308,11 +369,15 @@ impl Picture {
         (*self.inner).pic.stride[s] as u32
     }
 
+    /// Raw pointer to the data of the `component` for the decoded frame.
     pub fn plane_data_ptr(&self, component: PlanarImageComponent) -> *mut c_void {
         let index: usize = component.into();
         (*self.inner).pic.data[index]
     }
 
+    /// Plane geometry of the `component` for the decoded frame.
+    ///
+    /// This returns the stride and height.
     pub fn plane_data_geometry(&self, component: PlanarImageComponent) -> (u32, u32) {
         let height = match component {
             PlanarImageComponent::Y => self.height(),
@@ -324,14 +389,23 @@ impl Picture {
         (self.stride(component) as u32, height)
     }
 
+    /// Plane data of the `component` for the decoded frame.
     pub fn plane(&self, component: PlanarImageComponent) -> Plane {
         Plane(self.clone(), component)
     }
 
+    /// Bit depth of the plane data.
+    ///
+    /// This returns 8 or 16 for the underlying integer type used for the plane data.
+    ///
+    /// Check [`Picture::bits_per_component`] for the number of bits that are used.
     pub fn bit_depth(&self) -> usize {
         (*self.inner).pic.p.bpc as usize
     }
 
+    /// Bits used per component of the plane data.
+    ///
+    /// Check [`Picture::bit_depth`] for the number of storage bits.
     pub fn bits_per_component(&self) -> Option<BitsPerComponent> {
         unsafe {
             match (*(*self.inner).pic.seq_hdr).hbd {
@@ -343,14 +417,17 @@ impl Picture {
         }
     }
 
+    /// Width of the frame.
     pub fn width(&self) -> u32 {
         (*self.inner).pic.p.w as u32
     }
 
+    /// Height of the frame.
     pub fn height(&self) -> u32 {
         (*self.inner).pic.p.h as u32
     }
 
+    /// Pixel layout of the frame.
     pub fn pixel_layout(&self) -> PixelLayout {
         #[allow(non_upper_case_globals)]
         match (*self.inner).pic.p.layout {
@@ -362,6 +439,9 @@ impl Picture {
         }
     }
 
+    /// Timestamp of the frame.
+    ///
+    /// This is the same timestamp as the one provided to [`Decoder::send_data`].
     pub fn timestamp(&self) -> Option<i64> {
         let ts = (*self.inner).pic.m.timestamp;
         if ts == i64::MIN {
@@ -371,10 +451,18 @@ impl Picture {
         }
     }
 
+    /// Duration of the frame.
+    ///
+    /// This is the same duration as the one provided to [`Decoder::send_data`] or `0` if none was
+    /// provided.
     pub fn duration(&self) -> i64 {
         (*self.inner).pic.m.duration as i64
     }
 
+    /// Offset of the frame.
+    ///
+    /// This is the same offset as the one provided to [`Decoder::send_data`] or `-1` if none was
+    /// provided.
     pub fn offset(&self) -> i64 {
         (*self.inner).pic.m.offset
     }
