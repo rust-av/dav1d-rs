@@ -72,14 +72,8 @@ unsafe extern "C" fn release_wrapped_data<T: AsRef<[u8]>>(_data: *const u8, cook
     drop(buf);
 }
 
-impl Default for Decoder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Decoder {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self, Error> {
         unsafe {
             let mut settings = mem::MaybeUninit::uninit();
             let mut dec = mem::MaybeUninit::uninit();
@@ -90,14 +84,14 @@ impl Decoder {
 
             let ret = dav1d_open(dec.as_mut_ptr(), &settings);
 
-            if ret != 0 {
-                panic!("Cannot instantiate the default decoder {}", ret);
+            if ret < 0 {
+                return Err(Error::from(ret));
             }
 
-            Decoder {
+            Ok(Decoder {
                 dec: ptr::NonNull::new(dec.assume_init()).unwrap(),
                 pending_data: None,
-            }
+            })
         }
     }
 
