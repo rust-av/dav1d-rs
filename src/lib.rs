@@ -296,7 +296,7 @@ impl std::ops::Deref for Plane {
 unsafe impl Send for Plane {}
 unsafe impl Sync for Plane {}
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct BitsPerComponent(pub usize);
 
 impl Picture {
