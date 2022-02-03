@@ -7,7 +7,7 @@ use std::mem;
 use std::ptr;
 use std::sync::Arc;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Error(i32);
 
 impl Error {
