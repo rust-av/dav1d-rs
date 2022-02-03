@@ -240,7 +240,6 @@ pub enum PixelLayout {
     I420,
     I422,
     I444,
-    Unknown,
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug)]
@@ -311,7 +310,6 @@ impl Picture {
             _ => match self.pixel_layout() {
                 PixelLayout::I420 => (self.height() + 1) / 2,
                 PixelLayout::I400 | PixelLayout::I422 | PixelLayout::I444 => self.height(),
-                PixelLayout::Unknown => unreachable!(),
             },
         };
         (self.stride(component) as u32, height)
@@ -351,7 +349,7 @@ impl Picture {
             Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
             Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
             Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I444 => PixelLayout::I444,
-            _ => PixelLayout::Unknown,
+            _ => unreachable!(),
         }
     }
 
