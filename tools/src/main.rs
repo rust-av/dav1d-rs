@@ -74,6 +74,19 @@ struct Opt {
 use std::fs::File;
 use std::io::BufReader;
 
+fn handle_pending_pictures(dec: &mut dav1d::Decoder) {
+    loop {
+        match dec.get_picture() {
+            Ok(p) => println!("{:?}", p),
+            // Need to send more data to the decoder before it can decode new pictures
+            Err(e) if e.is_again() => return,
+            Err(e) => {
+                panic!("Error getting decoded pictures: {}", e);
+            }
+        }
+    }
+}
+
 fn main() -> std::io::Result<()> {
     let opt = Opt::from_args();
 
@@ -82,23 +95,37 @@ fn main() -> std::io::Result<()> {
     let header = ivf::read_header(&mut r)?;
     println!("{:?}", header);
 
-    let mut dec = dav1d::Decoder::new();
+    let mut dec = dav1d::Decoder::new().expect("failed to create decoder instance");
 
     while let Ok(packet) = ivf::read_packet(&mut r) {
         println!("Packet {}", packet.pts);
-        dec.send_data(packet.data, None, None, None).unwrap();
-        loop {
-            match dec.get_picture() {
-                Ok(p) => println!("{:?}", p),
-                Err(e) => {
-                    if e.is_again() {
-                        break;
-                    } else {
-                        panic!("Error {}", e);
+
+        // Send packet to the decoder
+        match dec.send_data(packet.data, None, None, None) {
+            Err(e) if e.is_again() => {
+                // If the decoder did not consume all data, output all
+                // pending pictures and send pending data to the decoder
+                // until it is all used up.
+                loop {
+                    handle_pending_pictures(&mut dec);
+
+                    match dec.send_pending_data() {
+                        Err(e) if e.is_again() => continue,
+                        Err(e) => {
+                            panic!("Error sending pending data to the decoder: {}", e);
+                        }
+                        _ => break,
                     }
                 }
             }
+            Err(e) => {
+                panic!("Error sending data to the decoder: {}", e);
+            }
+            _ => (),
         }
+
+        // Handle all pending pictures before sending the next data.
+        handle_pending_pictures(&mut dec);
     }
 
     Ok(())
