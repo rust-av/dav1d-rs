@@ -9,6 +9,7 @@ mod build {
     use std::process::{Command, Stdio};
 
     const REPO: &str = "https://code.videolan.org/videolan/dav1d.git";
+    const TAG: &str = "0.9.2";
 
     macro_rules! runner {
         ($cmd:expr, $($arg:expr),*) => {
@@ -34,9 +35,25 @@ mod build {
         let release_path = source.join(release_dir);
 
         if !Path::new(&source.join(".git")).exists() {
-            runner!("git", "clone", "--depth", "1", REPO, &source);
+            runner!("git", "clone", "--depth", "1", "-b", TAG, REPO, &source);
         } else {
-            runner!("git", "-C", source.to_str().unwrap(), "pull");
+            runner!(
+                "git",
+                "-C",
+                source.to_str().unwrap(),
+                "fetch",
+                "--depth",
+                "1",
+                "origin",
+                TAG
+            );
+            runner!(
+                "git",
+                "-C",
+                source.to_str().unwrap(),
+                "checkout",
+                "FETCH_HEAD"
+            );
         }
 
         runner!(
