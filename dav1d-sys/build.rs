@@ -84,6 +84,7 @@ fn main() {
     let mut builder = bindgen::builder()
         .blocklist_type("max_align_t")
         .size_t_is_usize(true)
+        .layout_tests(false)
         .header("data/dav1d.h");
 
     for header in headers {
