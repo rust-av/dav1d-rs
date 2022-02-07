@@ -11,10 +11,14 @@ However you can optionally build and statically link libdav1d into the -sys bind
 $ SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always cargo build
 ```
 
+## Supported versions
+
+The high level bindings require dav1d 0.9.2
+
 ## TODO
 - [x] Simple bindings
 - [x] Safe abstraction
 - [ ] Examples
 
-[1]: https://github.com/rust-lang-nursery/rust-bindgen
+[1]: https://github.com/rust-lang/rust-bindgen
 [2]: https://code.videolan.org/videolan/dav1d
