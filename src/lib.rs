@@ -111,7 +111,7 @@ impl Settings {
         self.dav1d_settings.n_frame_threads = n_frame_threads as i32;
     }
 
-    pub fn get_n_frame_threads(self: &mut Self) -> u32 {
+    pub fn get_n_frame_threads(&self) -> u32 {
         self.dav1d_settings.n_frame_threads as u32
     }
 
@@ -119,7 +119,7 @@ impl Settings {
         self.dav1d_settings.n_tile_threads = n_tile_threads as i32;
     }
 
-    pub fn get_n_tile_threads(self: &mut Self) -> u32 {
+    pub fn get_n_tile_threads(&self) -> u32 {
         self.dav1d_settings.n_tile_threads as u32
     }
 
@@ -127,7 +127,7 @@ impl Settings {
         self.dav1d_settings.apply_grain = if apply_grain { 1 } else { 0 };
     }
 
-    pub fn get_apply_grain(self: &mut Self) -> bool {
+    pub fn get_apply_grain(&self) -> bool {
         self.dav1d_settings.apply_grain != 0
     }
 
@@ -135,7 +135,7 @@ impl Settings {
         self.dav1d_settings.operating_point = operating_point as i32;
     }
 
-    pub fn get_operating_point(self: &mut Self) -> u32 {
+    pub fn get_operating_point(&self) -> u32 {
         self.dav1d_settings.operating_point as u32
     }
 
@@ -143,7 +143,7 @@ impl Settings {
         self.dav1d_settings.all_layers = if all_layers { 1 } else { 0 };
     }
 
-    pub fn get_all_layers(self: &mut Self) -> bool {
+    pub fn get_all_layers(&self) -> bool {
         self.dav1d_settings.all_layers != 0
     }
 
@@ -151,7 +151,7 @@ impl Settings {
         self.dav1d_settings.frame_size_limit = frame_size_limit;
     }
 
-    pub fn get_frame_size_limit(self: &mut Self) -> u32 {
+    pub fn get_frame_size_limit(&self) -> u32 {
         self.dav1d_settings.frame_size_limit
     }
 
@@ -159,7 +159,7 @@ impl Settings {
         self.dav1d_settings.n_postfilter_threads = n_postfilter_threads as i32;
     }
 
-    pub fn get_n_postfilter_threads(self: &mut Self) -> u32 {
+    pub fn get_n_postfilter_threads(&self) -> u32 {
         self.dav1d_settings.n_postfilter_threads as u32
     }
 }
