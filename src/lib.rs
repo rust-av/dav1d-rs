@@ -107,7 +107,7 @@ impl Settings {
         }
     }
 
-    pub fn set_n_frame_threads(self: &mut Self, n_frame_threads: u32) {
+    pub fn set_n_frame_threads(&mut self, n_frame_threads: u32) {
         self.dav1d_settings.n_frame_threads = n_frame_threads as i32;
     }
 
@@ -115,7 +115,7 @@ impl Settings {
         self.dav1d_settings.n_frame_threads as u32
     }
 
-    pub fn set_n_tile_threads(self: &mut Self, n_tile_threads: u32) {
+    pub fn set_n_tile_threads(&mut self, n_tile_threads: u32) {
         self.dav1d_settings.n_tile_threads = n_tile_threads as i32;
     }
 
@@ -123,7 +123,7 @@ impl Settings {
         self.dav1d_settings.n_tile_threads as u32
     }
 
-    pub fn set_apply_grain(self: &mut Self, apply_grain: bool) {
+    pub fn set_apply_grain(&mut self, apply_grain: bool) {
         self.dav1d_settings.apply_grain = if apply_grain { 1 } else { 0 };
     }
 
@@ -131,7 +131,7 @@ impl Settings {
         self.dav1d_settings.apply_grain != 0
     }
 
-    pub fn set_operating_point(self: &mut Self, operating_point: u32) {
+    pub fn set_operating_point(&mut self, operating_point: u32) {
         self.dav1d_settings.operating_point = operating_point as i32;
     }
 
@@ -139,7 +139,7 @@ impl Settings {
         self.dav1d_settings.operating_point as u32
     }
 
-    pub fn set_all_layers(self: &mut Self, all_layers: bool) {
+    pub fn set_all_layers(&mut self, all_layers: bool) {
         self.dav1d_settings.all_layers = if all_layers { 1 } else { 0 };
     }
 
@@ -147,7 +147,7 @@ impl Settings {
         self.dav1d_settings.all_layers != 0
     }
 
-    pub fn set_frame_size_limit(self: &mut Self, frame_size_limit: u32) {
+    pub fn set_frame_size_limit(&mut self, frame_size_limit: u32) {
         self.dav1d_settings.frame_size_limit = frame_size_limit;
     }
 
@@ -155,7 +155,7 @@ impl Settings {
         self.dav1d_settings.frame_size_limit
     }
 
-    pub fn set_n_postfilter_threads(self: &mut Self, n_postfilter_threads: u32) {
+    pub fn set_n_postfilter_threads(&mut self, n_postfilter_threads: u32) {
         self.dav1d_settings.n_postfilter_threads = n_postfilter_threads as i32;
     }
 
