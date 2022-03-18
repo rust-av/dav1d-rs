@@ -107,20 +107,20 @@ impl Settings {
         }
     }
 
-    pub fn set_n_frame_threads(&mut self, n_frame_threads: u32) {
-        self.dav1d_settings.n_frame_threads = n_frame_threads as i32;
+    pub fn set_n_threads(&mut self, n_threads: u32) {
+        self.dav1d_settings.n_threads = n_threads as i32;
     }
 
-    pub fn get_n_frame_threads(&self) -> u32 {
-        self.dav1d_settings.n_frame_threads as u32
+    pub fn get_n_threads(&self) -> u32 {
+        self.dav1d_settings.n_threads as u32
     }
 
-    pub fn set_n_tile_threads(&mut self, n_tile_threads: u32) {
-        self.dav1d_settings.n_tile_threads = n_tile_threads as i32;
+    pub fn set_max_frame_delay(&mut self, max_frame_delay: u32) {
+        self.dav1d_settings.max_frame_delay = max_frame_delay as i32;
     }
 
-    pub fn get_n_tile_threads(&self) -> u32 {
-        self.dav1d_settings.n_tile_threads as u32
+    pub fn get_max_frame_delay(&self) -> u32 {
+        self.dav1d_settings.max_frame_delay as u32
     }
 
     pub fn set_apply_grain(&mut self, apply_grain: bool) {
@@ -155,12 +155,20 @@ impl Settings {
         self.dav1d_settings.frame_size_limit
     }
 
-    pub fn set_n_postfilter_threads(&mut self, n_postfilter_threads: u32) {
-        self.dav1d_settings.n_postfilter_threads = n_postfilter_threads as i32;
+    pub fn set_strict_std_compliance(&mut self, strict_std_compliance: bool) {
+        self.dav1d_settings.strict_std_compliance = if strict_std_compliance { 1 } else { 0 };
     }
 
-    pub fn get_n_postfilter_threads(&self) -> u32 {
-        self.dav1d_settings.n_postfilter_threads as u32
+    pub fn get_strict_std_compliance(&self) -> bool {
+        self.dav1d_settings.strict_std_compliance != 0
+    }
+
+    pub fn set_output_invisible_frames(&mut self, output_invisible_frames: bool) {
+        self.dav1d_settings.output_invisible_frames = if output_invisible_frames { 1 } else { 0 };
+    }
+
+    pub fn get_output_invisible_frames(&self) -> bool {
+        self.dav1d_settings.output_invisible_frames != 0
     }
 }
 
