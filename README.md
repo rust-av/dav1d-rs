@@ -13,7 +13,7 @@ $ SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always cargo build
 
 ## Supported versions
 
-The high level bindings require dav1d 0.9.2
+The bindings require dav1d 1.0.0
 
 ## TODO
 - [x] Simple bindings
