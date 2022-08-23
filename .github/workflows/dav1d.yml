@@ -47,7 +47,7 @@ jobs:
 
     - name: Run tests
       run: |
-        cargo test --all-features
+        cargo test --workspace --all-features
 
   windows-tests-gnu:
 
@@ -77,4 +77,4 @@ jobs:
     - name: Run tests
       shell: msys2 {0}
       run: |
-        cargo test --all-features
+        cargo test --workspace --all-features
