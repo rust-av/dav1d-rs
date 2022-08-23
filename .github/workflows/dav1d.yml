@@ -3,37 +3,78 @@ name: dav1d
 on: [push, pull_request]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+
+  linux-tests:
+
+    runs-on: ubuntu-22.04
+
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+
     - name: Install nasm
       uses: ilammy/setup-nasm@v1
+
     - name: Install Rust stable
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
         toolchain: stable
         override: true
-    - uses: actions/setup-python@v2
+
+    - name: Install Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
     - name: Install pip packages
       run: |
         pip install -U pip
         pip install -U wheel setuptools
         pip install -U meson ninja
-    - name: Install dav1d
+
+    - name: Build dav1d
       env:
         DAV1D_DIR: dav1d_dir
+        LIB_PATH: lib/x86_64-linux-gnu
       run: |
         git clone --branch 1.0.0 --depth 1 https://code.videolan.org/videolan/dav1d.git
         cd dav1d
         meson build -Dprefix=$HOME/$DAV1D_DIR --buildtype release
         ninja -C build
         ninja -C build install
+        echo "PKG_CONFIG_PATH=$HOME/$DAV1D_DIR/$LIB_PATH/pkgconfig" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=$HOME/$DAV1D_DIR/$LIB_PATH" >> $GITHUB_ENV
+
     - name: Run tests
-      env:
-        DAV1D_DIR: dav1d_dir
-        PKG_PATH: lib/x86_64-linux-gnu/pkgconfig
       run: |
-        export PKG_CONFIG_PATH=$HOME/$DAV1D_DIR/$PKG_PATH:$PKG_CONFIG_PATH
+        cargo test --all-features
+
+  windows-tests-gnu:
+
+    runs-on: windows-latest
+
+    env:
+      MSYSTEM: MINGW64
+      MSYS2_PATH_TYPE: inherit
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install Rust Windows gnu
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable-x86_64-pc-windows-gnu
+        override: true
+
+    - name: Install msys2 packages
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        install: mingw-w64-x86_64-pkgconf mingw-w64-x86_64-dav1d
+        update: true
+
+    - name: Run tests
+      shell: msys2 {0}
+      run: |
         cargo test --all-features
