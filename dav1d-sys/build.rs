@@ -75,7 +75,7 @@ mod build {
 
 fn main() {
     let libs = system_deps::Config::new()
-        .add_build_internal("dav1d", |lib, version| build::build_from_src(lib, version))
+        .add_build_internal("dav1d", build::build_from_src)
         .probe()
         .unwrap();
 
