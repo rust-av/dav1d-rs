@@ -47,7 +47,7 @@ impl From<i32> for Error {
         const NOPROTOOPT: i32 = ENOPROTOOPT as i32;
 
         // Correctly handle non-negative errnos
-        #[allow(unused_comparisons)]
+        #[allow(unused_comparisons, clippy::absurd_extreme_comparisons)]
         let err = if EPERM < 0 { err } else { -err };
 
         match err {
