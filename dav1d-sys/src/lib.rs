@@ -9,14 +9,14 @@ pub const DAV1D_OBU_METADATA: Dav1dObuType = 5;
 pub const DAV1D_OBU_FRAME: Dav1dObuType = 6;
 pub const DAV1D_OBU_REDUNDANT_FRAME_HDR: Dav1dObuType = 7;
 pub const DAV1D_OBU_PADDING: Dav1dObuType = 15;
-
 pub type Dav1dObuType = c_uint;
+
 pub const DAV1D_TX_4X4_ONLY: Dav1dTxfmMode = 0;
 pub const DAV1D_TX_LARGEST: Dav1dTxfmMode = 1;
 pub const DAV1D_TX_SWITCHABLE: Dav1dTxfmMode = 2;
 pub const DAV1D_N_TX_MODES: Dav1dTxfmMode = 3;
-
 pub type Dav1dTxfmMode = c_uint;
+
 pub const DAV1D_FILTER_8TAP_REGULAR: Dav1dFilterMode = 0;
 pub const DAV1D_FILTER_8TAP_SMOOTH: Dav1dFilterMode = 1;
 pub const DAV1D_FILTER_8TAP_SHARP: Dav1dFilterMode = 2;
@@ -24,38 +24,37 @@ pub const DAV1D_N_SWITCHABLE_FILTERS: Dav1dFilterMode = 3;
 pub const DAV1D_FILTER_BILINEAR: Dav1dFilterMode = 3;
 pub const DAV1D_N_FILTERS: Dav1dFilterMode = 4;
 pub const DAV1D_FILTER_SWITCHABLE: Dav1dFilterMode = 4;
-
 pub type Dav1dFilterMode = c_uint;
+
 pub const DAV1D_OFF: Dav1dAdaptiveBoolean = 0;
 pub const DAV1D_ON: Dav1dAdaptiveBoolean = 1;
 pub const DAV1D_ADAPTIVE: Dav1dAdaptiveBoolean = 2;
-
 pub type Dav1dAdaptiveBoolean = c_uint;
+
 pub const DAV1D_RESTORATION_NONE: Dav1dRestorationType = 0;
 pub const DAV1D_RESTORATION_SWITCHABLE: Dav1dRestorationType = 1;
 pub const DAV1D_RESTORATION_WIENER: Dav1dRestorationType = 2;
 pub const DAV1D_RESTORATION_SGRPROJ: Dav1dRestorationType = 3;
-
 pub type Dav1dRestorationType = c_uint;
+
 pub const DAV1D_WM_TYPE_IDENTITY: Dav1dWarpedMotionType = 0;
 pub const DAV1D_WM_TYPE_TRANSLATION: Dav1dWarpedMotionType = 1;
 pub const DAV1D_WM_TYPE_ROT_ZOOM: Dav1dWarpedMotionType = 2;
 pub const DAV1D_WM_TYPE_AFFINE: Dav1dWarpedMotionType = 3;
-
 pub type Dav1dWarpedMotionType = c_uint;
 
 pub const DAV1D_PIXEL_LAYOUT_I400: Dav1dPixelLayout = 0;
 pub const DAV1D_PIXEL_LAYOUT_I420: Dav1dPixelLayout = 1;
 pub const DAV1D_PIXEL_LAYOUT_I422: Dav1dPixelLayout = 2;
 pub const DAV1D_PIXEL_LAYOUT_I444: Dav1dPixelLayout = 3;
-
 pub type Dav1dPixelLayout = c_uint;
+
 pub const DAV1D_FRAME_TYPE_KEY: Dav1dFrameType = 0;
 pub const DAV1D_FRAME_TYPE_INTER: Dav1dFrameType = 1;
 pub const DAV1D_FRAME_TYPE_INTRA: Dav1dFrameType = 2;
 pub const DAV1D_FRAME_TYPE_SWITCH: Dav1dFrameType = 3;
-
 pub type Dav1dFrameType = c_uint;
+
 pub const DAV1D_COLOR_PRI_BT709: Dav1dColorPrimaries = 1;
 pub const DAV1D_COLOR_PRI_UNKNOWN: Dav1dColorPrimaries = 2;
 pub const DAV1D_COLOR_PRI_BT470M: Dav1dColorPrimaries = 4;
@@ -69,8 +68,8 @@ pub const DAV1D_COLOR_PRI_SMPTE431: Dav1dColorPrimaries = 11;
 pub const DAV1D_COLOR_PRI_SMPTE432: Dav1dColorPrimaries = 12;
 pub const DAV1D_COLOR_PRI_EBU3213: Dav1dColorPrimaries = 22;
 pub const DAV1D_COLOR_PRI_RESERVED: Dav1dColorPrimaries = 255;
-
 pub type Dav1dColorPrimaries = c_uint;
+
 pub const DAV1D_TRC_BT709: Dav1dTransferCharacteristics = 1;
 pub const DAV1D_TRC_UNKNOWN: Dav1dTransferCharacteristics = 2;
 pub const DAV1D_TRC_BT470M: Dav1dTransferCharacteristics = 4;
@@ -89,8 +88,8 @@ pub const DAV1D_TRC_SMPTE2084: Dav1dTransferCharacteristics = 16;
 pub const DAV1D_TRC_SMPTE428: Dav1dTransferCharacteristics = 17;
 pub const DAV1D_TRC_HLG: Dav1dTransferCharacteristics = 18;
 pub const DAV1D_TRC_RESERVED: Dav1dTransferCharacteristics = 255;
-
 pub type Dav1dTransferCharacteristics = c_uint;
+
 pub const DAV1D_MC_IDENTITY: Dav1dMatrixCoefficients = 0;
 pub const DAV1D_MC_BT709: Dav1dMatrixCoefficients = 1;
 pub const DAV1D_MC_UNKNOWN: Dav1dMatrixCoefficients = 2;
@@ -106,12 +105,11 @@ pub const DAV1D_MC_CHROMAT_NCL: Dav1dMatrixCoefficients = 12;
 pub const DAV1D_MC_CHROMAT_CL: Dav1dMatrixCoefficients = 13;
 pub const DAV1D_MC_ICTCP: Dav1dMatrixCoefficients = 14;
 pub const DAV1D_MC_RESERVED: Dav1dMatrixCoefficients = 255;
-
 pub type Dav1dMatrixCoefficients = c_uint;
+
 pub const DAV1D_CHR_UNKNOWN: Dav1dChromaSamplePosition = 0;
 pub const DAV1D_CHR_VERTICAL: Dav1dChromaSamplePosition = 1;
 pub const DAV1D_CHR_COLOCATED: Dav1dChromaSamplePosition = 2;
-
 pub type Dav1dChromaSamplePosition = c_uint;
 
 pub const DAV1D_INLOOPFILTER_NONE: Dav1dInloopFilterType = 0;
