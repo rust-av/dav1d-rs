@@ -66,19 +66,19 @@ pub type Dav1dWarpedMotionType = c_uint;
 pub struct Dav1dWarpedMotionParams {
     pub type_: Dav1dWarpedMotionType,
     pub matrix: [i32; 6usize],
-    pub u: Dav1dWarpedMotionParams__bindgen_ty_1,
+    pub u: Dav1dWarpedMotionParamsU,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-pub union Dav1dWarpedMotionParams__bindgen_ty_1 {
-    pub p: Dav1dWarpedMotionParams__bindgen_ty_1__bindgen_ty_1,
+pub union Dav1dWarpedMotionParamsU {
+    pub p: Dav1dWarpedMotionParamsUP,
     pub abcd: [i16; 4usize],
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dWarpedMotionParams__bindgen_ty_1__bindgen_ty_1 {
+pub struct Dav1dWarpedMotionParamsUP {
     pub alpha: i16,
     pub beta: i16,
     pub gamma: i16,
@@ -194,7 +194,7 @@ pub struct Dav1dSequenceHeader {
     pub hbd: c_int,
     pub color_range: c_int,
     pub num_operating_points: c_int,
-    pub operating_points: [Dav1dSequenceHeader_Dav1dSequenceHeaderOperatingPoint; 32usize],
+    pub operating_points: [Dav1dSequenceHeaderOperatingPoint; 32usize],
     pub still_picture: c_int,
     pub reduced_still_picture_header: c_int,
     pub timing_info_present: c_int,
@@ -235,13 +235,12 @@ pub struct Dav1dSequenceHeader {
     pub color_description_present: c_int,
     pub separate_uv_delta_q: c_int,
     pub film_grain_present: c_int,
-    pub operating_parameter_info:
-        [Dav1dSequenceHeader_Dav1dSequenceHeaderOperatingParameterInfo; 32usize],
+    pub operating_parameter_info: [Dav1dSequenceHeaderOperatingParameterInfo; 32usize],
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dSequenceHeader_Dav1dSequenceHeaderOperatingPoint {
+pub struct Dav1dSequenceHeaderOperatingPoint {
     pub major_level: c_int,
     pub minor_level: c_int,
     pub initial_display_delay: c_int,
@@ -253,7 +252,7 @@ pub struct Dav1dSequenceHeader_Dav1dSequenceHeaderOperatingPoint {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dSequenceHeader_Dav1dSequenceHeaderOperatingParameterInfo {
+pub struct Dav1dSequenceHeaderOperatingParameterInfo {
     pub decoder_buffer_delay: c_int,
     pub encoder_buffer_delay: c_int,
     pub low_delay_mode: c_int,
@@ -312,7 +311,7 @@ pub struct Dav1dFilmGrainData {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct Dav1dFrameHeader {
-    pub film_grain: Dav1dFrameHeader__bindgen_ty_1,
+    pub film_grain: Dav1dFrameHeaderFilmGrain,
     pub frame_type: Dav1dFrameType,
     pub width: [c_int; 2usize],
     pub height: c_int,
@@ -332,11 +331,11 @@ pub struct Dav1dFrameHeader {
     pub frame_size_override: c_int,
     pub primary_ref_frame: c_int,
     pub buffer_removal_time_present: c_int,
-    pub operating_points: [Dav1dFrameHeader_Dav1dFrameHeaderOperatingPoint; 32usize],
+    pub operating_points: [Dav1dFrameHeaderOperatingPoint; 32usize],
     pub refresh_frame_flags: c_int,
     pub render_width: c_int,
     pub render_height: c_int,
-    pub super_res: Dav1dFrameHeader__bindgen_ty_2,
+    pub super_res: Dav1dFrameHeaderSuperRes,
     pub have_render_size: c_int,
     pub allow_intrabc: c_int,
     pub frame_ref_short_signaling: c_int,
@@ -346,14 +345,14 @@ pub struct Dav1dFrameHeader {
     pub switchable_motion_mode: c_int,
     pub use_ref_frame_mvs: c_int,
     pub refresh_context: c_int,
-    pub tiling: Dav1dFrameHeader__bindgen_ty_3,
-    pub quant: Dav1dFrameHeader__bindgen_ty_4,
-    pub segmentation: Dav1dFrameHeader__bindgen_ty_5,
-    pub delta: Dav1dFrameHeader__bindgen_ty_6,
+    pub tiling: Dav1dFrameHeaderTiling,
+    pub quant: Dav1dFrameHeaderQuant,
+    pub segmentation: Dav1dFrameHeaderSegmentation,
+    pub delta: Dav1dFrameHeaderDelta,
     pub all_lossless: c_int,
-    pub loopfilter: Dav1dFrameHeader__bindgen_ty_7,
-    pub cdef: Dav1dFrameHeader__bindgen_ty_8,
-    pub restoration: Dav1dFrameHeader__bindgen_ty_9,
+    pub loopfilter: Dav1dFrameHeaderLoopfilter,
+    pub cdef: Dav1dFrameHeaderCDef,
+    pub restoration: Dav1dFrameHeaderRestoration,
     pub txfm_mode: Dav1dTxfmMode,
     pub switchable_comp_refs: c_int,
     pub skip_mode_allowed: c_int,
@@ -366,7 +365,7 @@ pub struct Dav1dFrameHeader {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_1 {
+pub struct Dav1dFrameHeaderFilmGrain {
     pub data: Dav1dFilmGrainData,
     pub present: c_int,
     pub update: c_int,
@@ -374,20 +373,20 @@ pub struct Dav1dFrameHeader__bindgen_ty_1 {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader_Dav1dFrameHeaderOperatingPoint {
+pub struct Dav1dFrameHeaderOperatingPoint {
     pub buffer_removal_time: c_int,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_2 {
+pub struct Dav1dFrameHeaderSuperRes {
     pub width_scale_denominator: c_int,
     pub enabled: c_int,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_3 {
+pub struct Dav1dFrameHeaderTiling {
     pub uniform: c_int,
     pub n_bytes: c_uint,
     pub min_log2_cols: c_int,
@@ -405,7 +404,7 @@ pub struct Dav1dFrameHeader__bindgen_ty_3 {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_4 {
+pub struct Dav1dFrameHeaderQuant {
     pub yac: c_int,
     pub ydc_delta: c_int,
     pub udc_delta: c_int,
@@ -420,7 +419,7 @@ pub struct Dav1dFrameHeader__bindgen_ty_4 {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_5 {
+pub struct Dav1dFrameHeaderSegmentation {
     pub enabled: c_int,
     pub update_map: c_int,
     pub temporal: c_int,
@@ -432,21 +431,21 @@ pub struct Dav1dFrameHeader__bindgen_ty_5 {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_6 {
-    pub q: Dav1dFrameHeader__bindgen_ty_6__bindgen_ty_1,
-    pub lf: Dav1dFrameHeader__bindgen_ty_6__bindgen_ty_2,
+pub struct Dav1dFrameHeaderDelta {
+    pub q: Dav1dDeltaQ,
+    pub lf: Dav1dDeltaLF,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_6__bindgen_ty_1 {
+pub struct Dav1dDeltaQ {
     pub present: c_int,
     pub res_log2: c_int,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_6__bindgen_ty_2 {
+pub struct Dav1dDeltaLF {
     pub present: c_int,
     pub res_log2: c_int,
     pub multi: c_int,
@@ -454,7 +453,7 @@ pub struct Dav1dFrameHeader__bindgen_ty_6__bindgen_ty_2 {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_7 {
+pub struct Dav1dFrameHeaderLoopfilter {
     pub level_y: [c_int; 2usize],
     pub level_u: c_int,
     pub level_v: c_int,
@@ -466,7 +465,7 @@ pub struct Dav1dFrameHeader__bindgen_ty_7 {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_8 {
+pub struct Dav1dFrameHeaderCDef {
     pub damping: c_int,
     pub n_bits: c_int,
     pub y_strength: [c_int; 8usize],
@@ -475,7 +474,7 @@ pub struct Dav1dFrameHeader__bindgen_ty_8 {
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Dav1dFrameHeader__bindgen_ty_9 {
+pub struct Dav1dFrameHeaderRestoration {
     pub type_: [Dav1dRestorationType; 3usize],
     pub unit_size: [c_int; 2usize],
 }
