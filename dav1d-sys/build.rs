@@ -1,6 +1,4 @@
 use std::env;
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 
 mod build {
@@ -74,33 +72,8 @@ mod build {
 }
 
 fn main() {
-    let libs = system_deps::Config::new()
+    system_deps::Config::new()
         .add_build_internal("dav1d", build::build_from_src)
         .probe()
         .unwrap();
-
-    let headers = libs.all_include_paths();
-
-    let mut builder = bindgen::builder()
-        .blocklist_type("max_align_t")
-        .size_t_is_usize(true)
-        .layout_tests(false)
-        .header("data/dav1d.h");
-
-    for header in headers {
-        builder = builder.clang_arg("-I").clang_arg(header.to_str().unwrap());
-    }
-
-    // Manually fix the comment so rustdoc won't try to pick them
-    let s = builder
-        .generate()
-        .unwrap()
-        .to_string()
-        .replace("/**", "/*")
-        .replace("/*!", "/*");
-
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let mut file = File::create(out_path.join("dav1d.rs")).unwrap();
-
-    let _ = file.write(s.as_bytes());
 }

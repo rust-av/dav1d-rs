@@ -1,6 +1,6 @@
 # libdav1d bindings [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Actions Status](https://github.com/rust-av/dav1d-rs/workflows/dav1d/badge.svg)](https://github.com/rust-av/dav1d-rs/actions)
 
-It is a simple [binding][1] and safe abstraction over [dav1d][2].
+It is a simple FFI binding and safe abstraction over [dav1d][1].
 
 
 ## Building
@@ -44,5 +44,4 @@ The bindings require dav1d 1.0.0
 - [x] Safe abstraction
 - [ ] Examples
 
-[1]: https://github.com/rust-lang/rust-bindgen
-[2]: https://code.videolan.org/videolan/dav1d
+[1]: https://code.videolan.org/videolan/dav1d
