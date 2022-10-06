@@ -41,14 +41,14 @@ impl From<i32> for Error {
         assert!(err < 0);
 
         // Convert to i32
-        const AGAIN: i32 = EAGAIN as i32;
-        const INVAL: i32 = EINVAL as i32;
-        const NOMEM: i32 = ENOMEM as i32;
-        const NOPROTOOPT: i32 = ENOPROTOOPT as i32;
+        const AGAIN: i32 = libc::EAGAIN as i32;
+        const INVAL: i32 = libc::EINVAL as i32;
+        const NOMEM: i32 = libc::ENOMEM as i32;
+        const NOPROTOOPT: i32 = libc::ENOPROTOOPT as i32;
 
         // Correctly handle non-negative errnos
         #[allow(unused_comparisons, clippy::absurd_extreme_comparisons)]
-        let err = if EPERM < 0 { err } else { -err };
+        let err = if libc::EPERM < 0 { err } else { -err };
 
         match err {
             AGAIN => Error::Again,
