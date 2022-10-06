@@ -40,21 +40,11 @@ impl From<i32> for Error {
     fn from(err: i32) -> Self {
         assert!(err < 0);
 
-        // Convert to i32
-        const AGAIN: i32 = libc::EAGAIN as i32;
-        const INVAL: i32 = libc::EINVAL as i32;
-        const NOMEM: i32 = libc::ENOMEM as i32;
-        const NOPROTOOPT: i32 = libc::ENOPROTOOPT as i32;
-
-        // Correctly handle non-negative errnos
-        #[allow(unused_comparisons, clippy::absurd_extreme_comparisons)]
-        let err = if libc::EPERM < 0 { err } else { -err };
-
         match err {
-            AGAIN => Error::Again,
-            INVAL => Error::InvalidArgument,
-            NOMEM => Error::NotEnoughMemory,
-            NOPROTOOPT => Error::UnsupportedBitstream,
+            DAV1D_ERR_AGAIN => Error::Again,
+            DAV1D_ERR_INVAL => Error::InvalidArgument,
+            DAV1D_ERR_NOMEM => Error::NotEnoughMemory,
+            DAV1D_ERR_NOPROTOOPT => Error::UnsupportedBitstream,
             _ => Error::UnknownError(err),
         }
     }

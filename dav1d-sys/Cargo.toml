@@ -16,3 +16,4 @@ dav1d = "1.0.0"
 system-deps = "6.0"
 
 [dependencies]
+libc = "0.2"

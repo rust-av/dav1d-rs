@@ -123,6 +123,20 @@ pub const DAV1D_EVENT_FLAG_NEW_SEQUENCE: Dav1dEventFlags = 1;
 pub const DAV1D_EVENT_FLAG_NEW_OP_PARAMS_INFO: Dav1dEventFlags = 2;
 pub type Dav1dEventFlags = c_uint;
 
+// Conversion of the C DAV1D_ERR macro
+pub const fn dav1d_err(errno: c_int) -> c_int {
+    if libc::EPERM < 0 {
+        errno
+    } else {
+        -errno
+    }
+}
+
+pub const DAV1D_ERR_AGAIN: c_int = dav1d_err(libc::EAGAIN);
+pub const DAV1D_ERR_INVAL: c_int = dav1d_err(libc::EINVAL);
+pub const DAV1D_ERR_NOMEM: c_int = dav1d_err(libc::ENOMEM);
+pub const DAV1D_ERR_NOPROTOOPT: c_int = dav1d_err(libc::ENOPROTOOPT);
+
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dUserData {
