@@ -1,23 +1,6 @@
 // TODO: Use core::ffi once we depend on Rust >= 1.64
 use std::os::raw::{c_char, c_int, c_uint, c_void};
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Dav1dUserData {
-    pub data: *const u8,
-    pub ref_: *mut Dav1dRef,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Dav1dDataProps {
-    pub timestamp: i64,
-    pub duration: i64,
-    pub offset: i64,
-    pub size: usize,
-    pub user_data: Dav1dUserData,
-}
-
 pub const DAV1D_OBU_SEQ_HDR: Dav1dObuType = 1;
 pub const DAV1D_OBU_TD: Dav1dObuType = 2;
 pub const DAV1D_OBU_FRAME_HDR: Dav1dObuType = 3;
@@ -60,30 +43,6 @@ pub const DAV1D_WM_TYPE_ROT_ZOOM: Dav1dWarpedMotionType = 2;
 pub const DAV1D_WM_TYPE_AFFINE: Dav1dWarpedMotionType = 3;
 
 pub type Dav1dWarpedMotionType = c_uint;
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct Dav1dWarpedMotionParams {
-    pub type_: Dav1dWarpedMotionType,
-    pub matrix: [i32; 6usize],
-    pub u: Dav1dWarpedMotionParamsU,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union Dav1dWarpedMotionParamsU {
-    pub p: Dav1dWarpedMotionParamsUP,
-    pub abcd: [i16; 4usize],
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Dav1dWarpedMotionParamsUP {
-    pub alpha: i16,
-    pub beta: i16,
-    pub gamma: i16,
-    pub delta: i16,
-}
 
 pub const DAV1D_PIXEL_LAYOUT_I400: Dav1dPixelLayout = 0;
 pub const DAV1D_PIXEL_LAYOUT_I420: Dav1dPixelLayout = 1;
@@ -154,6 +113,58 @@ pub const DAV1D_CHR_VERTICAL: Dav1dChromaSamplePosition = 1;
 pub const DAV1D_CHR_COLOCATED: Dav1dChromaSamplePosition = 2;
 
 pub type Dav1dChromaSamplePosition = c_uint;
+
+pub const DAV1D_INLOOPFILTER_NONE: Dav1dInloopFilterType = 0;
+pub const DAV1D_INLOOPFILTER_DEBLOCK: Dav1dInloopFilterType = 1;
+pub const DAV1D_INLOOPFILTER_CDEF: Dav1dInloopFilterType = 2;
+pub const DAV1D_INLOOPFILTER_RESTORATION: Dav1dInloopFilterType = 4;
+pub const DAV1D_INLOOPFILTER_ALL: Dav1dInloopFilterType = 7;
+pub type Dav1dInloopFilterType = c_uint;
+
+pub const DAV1D_EVENT_FLAG_NEW_SEQUENCE: Dav1dEventFlags = 1;
+pub const DAV1D_EVENT_FLAG_NEW_OP_PARAMS_INFO: Dav1dEventFlags = 2;
+pub type Dav1dEventFlags = c_uint;
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Dav1dUserData {
+    pub data: *const u8,
+    pub ref_: *mut Dav1dRef,
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Dav1dDataProps {
+    pub timestamp: i64,
+    pub duration: i64,
+    pub offset: i64,
+    pub size: usize,
+    pub user_data: Dav1dUserData,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct Dav1dWarpedMotionParams {
+    pub type_: Dav1dWarpedMotionType,
+    pub matrix: [i32; 6usize],
+    pub u: Dav1dWarpedMotionParamsU,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union Dav1dWarpedMotionParamsU {
+    pub p: Dav1dWarpedMotionParamsUP,
+    pub abcd: [i16; 4usize],
+}
+
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Dav1dWarpedMotionParamsUP {
+    pub alpha: i16,
+    pub beta: i16,
+    pub gamma: i16,
+    pub delta: i16,
+}
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -551,13 +562,6 @@ pub struct Dav1dLogger {
     //  >,
 }
 
-pub const DAV1D_INLOOPFILTER_NONE: Dav1dInloopFilterType = 0;
-pub const DAV1D_INLOOPFILTER_DEBLOCK: Dav1dInloopFilterType = 1;
-pub const DAV1D_INLOOPFILTER_CDEF: Dav1dInloopFilterType = 2;
-pub const DAV1D_INLOOPFILTER_RESTORATION: Dav1dInloopFilterType = 4;
-pub const DAV1D_INLOOPFILTER_ALL: Dav1dInloopFilterType = 7;
-pub type Dav1dInloopFilterType = c_uint;
-
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dSettings {
@@ -574,10 +578,6 @@ pub struct Dav1dSettings {
     pub inloop_filters: Dav1dInloopFilterType,
     pub reserved: [u8; 20usize],
 }
-
-pub const DAV1D_EVENT_FLAG_NEW_SEQUENCE: Dav1dEventFlags = 1;
-pub const DAV1D_EVENT_FLAG_NEW_OP_PARAMS_INFO: Dav1dEventFlags = 2;
-pub type Dav1dEventFlags = c_uint;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
