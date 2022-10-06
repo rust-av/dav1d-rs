@@ -541,11 +541,9 @@ pub struct Dav1dData {
     pub m: Dav1dDataProps,
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Dav1dContext {
-    _unused: [u8; 0],
-}
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct Dav1dContext(c_void);
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -579,11 +577,9 @@ pub struct Dav1dSettings {
     pub reserved: [u8; 20usize],
 }
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Dav1dRef {
-    pub _address: u8,
-}
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct Dav1dRef(c_void);
 
 extern "C" {
     pub fn dav1d_version() -> *const c_char;
