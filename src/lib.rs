@@ -523,10 +523,10 @@ impl Picture {
     pub fn pixel_layout(&self) -> PixelLayout {
         #[allow(non_upper_case_globals)]
         match (*self.inner).pic.p.layout {
-            Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I400 => PixelLayout::I400,
-            Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
-            Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
-            Dav1dPixelLayout_DAV1D_PIXEL_LAYOUT_I444 => PixelLayout::I444,
+            DAV1D_PIXEL_LAYOUT_I400 => PixelLayout::I400,
+            DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
+            DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
+            DAV1D_PIXEL_LAYOUT_I444 => PixelLayout::I444,
             _ => unreachable!(),
         }
     }
