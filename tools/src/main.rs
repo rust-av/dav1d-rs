@@ -2,7 +2,7 @@ mod ivf {
     use bitstream_io::{BitRead, BitReader, LittleEndian};
     use std::io;
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, PartialEq, Eq)]
     pub struct Header {
         pub tag: [u8; 4],
         pub w: u16,
