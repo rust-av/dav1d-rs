@@ -114,7 +114,7 @@ impl Settings {
     }
 
     pub fn set_apply_grain(&mut self, apply_grain: bool) {
-        self.dav1d_settings.apply_grain = if apply_grain { 1 } else { 0 };
+        self.dav1d_settings.apply_grain = i32::from(apply_grain);
     }
 
     pub fn get_apply_grain(&self) -> bool {
@@ -130,7 +130,7 @@ impl Settings {
     }
 
     pub fn set_all_layers(&mut self, all_layers: bool) {
-        self.dav1d_settings.all_layers = if all_layers { 1 } else { 0 };
+        self.dav1d_settings.all_layers = i32::from(all_layers);
     }
 
     pub fn get_all_layers(&self) -> bool {
@@ -146,7 +146,7 @@ impl Settings {
     }
 
     pub fn set_strict_std_compliance(&mut self, strict_std_compliance: bool) {
-        self.dav1d_settings.strict_std_compliance = if strict_std_compliance { 1 } else { 0 };
+        self.dav1d_settings.strict_std_compliance = i32::from(strict_std_compliance);
     }
 
     pub fn get_strict_std_compliance(&self) -> bool {
@@ -154,7 +154,7 @@ impl Settings {
     }
 
     pub fn set_output_invisible_frames(&mut self, output_invisible_frames: bool) {
-        self.dav1d_settings.output_invisible_frames = if output_invisible_frames { 1 } else { 0 };
+        self.dav1d_settings.output_invisible_frames = i32::from(output_invisible_frames);
     }
 
     pub fn get_output_invisible_frames(&self) -> bool {
@@ -448,13 +448,13 @@ impl Picture {
             PlanarImageComponent::Y => 0,
             _ => 1,
         };
-        (*self.inner).pic.stride[s] as u32
+        self.inner.pic.stride[s] as u32
     }
 
     /// Raw pointer to the data of the `component` for the decoded frame.
     pub fn plane_data_ptr(&self, component: PlanarImageComponent) -> *mut c_void {
         let index: usize = component.into();
-        (*self.inner).pic.data[index]
+        self.inner.pic.data[index]
     }
 
     /// Plane geometry of the `component` for the decoded frame.
@@ -482,7 +482,7 @@ impl Picture {
     ///
     /// Check [`Picture::bits_per_component`] for the number of bits that are used.
     pub fn bit_depth(&self) -> usize {
-        (*self.inner).pic.p.bpc as usize
+        self.inner.pic.p.bpc as usize
     }
 
     /// Bits used per component of the plane data.
@@ -490,7 +490,7 @@ impl Picture {
     /// Check [`Picture::bit_depth`] for the number of storage bits.
     pub fn bits_per_component(&self) -> Option<BitsPerComponent> {
         unsafe {
-            match (*(*self.inner).pic.seq_hdr).hbd {
+            match (*self.inner.pic.seq_hdr).hbd {
                 0 => Some(BitsPerComponent(8)),
                 1 => Some(BitsPerComponent(10)),
                 2 => Some(BitsPerComponent(12)),
@@ -501,18 +501,18 @@ impl Picture {
 
     /// Width of the frame.
     pub fn width(&self) -> u32 {
-        (*self.inner).pic.p.w as u32
+        self.inner.pic.p.w as u32
     }
 
     /// Height of the frame.
     pub fn height(&self) -> u32 {
-        (*self.inner).pic.p.h as u32
+        self.inner.pic.p.h as u32
     }
 
     /// Pixel layout of the frame.
     pub fn pixel_layout(&self) -> PixelLayout {
         #[allow(non_upper_case_globals)]
-        match (*self.inner).pic.p.layout {
+        match self.inner.pic.p.layout {
             DAV1D_PIXEL_LAYOUT_I400 => PixelLayout::I400,
             DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
             DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
@@ -525,7 +525,7 @@ impl Picture {
     ///
     /// This is the same timestamp as the one provided to [`Decoder::send_data`].
     pub fn timestamp(&self) -> Option<i64> {
-        let ts = (*self.inner).pic.m.timestamp;
+        let ts = self.inner.pic.m.timestamp;
         if ts == i64::MIN {
             None
         } else {
@@ -538,7 +538,7 @@ impl Picture {
     /// This is the same duration as the one provided to [`Decoder::send_data`] or `0` if none was
     /// provided.
     pub fn duration(&self) -> i64 {
-        (*self.inner).pic.m.duration as i64
+        self.inner.pic.m.duration as i64
     }
 
     /// Offset of the frame.
@@ -546,7 +546,7 @@ impl Picture {
     /// This is the same offset as the one provided to [`Decoder::send_data`] or `-1` if none was
     /// provided.
     pub fn offset(&self) -> i64 {
-        (*self.inner).pic.m.offset
+        self.inner.pic.m.offset
     }
 }
 
