@@ -335,6 +335,12 @@ impl Decoder {
             }
         }
     }
+
+    #[cfg(feature = "v1_1")]
+    /// Get the decoder delay.
+    pub fn get_frame_delay(&self) -> u32 {
+        unsafe { dav1d_get_frame_delay(self.dec.as_ptr()) as u32 }
+    }
 }
 
 impl Drop for Decoder {

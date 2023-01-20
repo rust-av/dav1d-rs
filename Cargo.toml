@@ -12,5 +12,8 @@ version = "0.9.1"
 [dependencies]
 dav1d-sys = { version = "0.7.0", path = "dav1d-sys" }
 
+[features]
+v1_1 = ["dav1d-sys/v1_1"]
+
 [workspace]
 members = ["dav1d-sys", "tools"]
