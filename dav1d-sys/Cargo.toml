@@ -9,11 +9,18 @@ edition = "2021"
 
 build = "build.rs"
 
-[package.metadata.system-deps]
-dav1d = "1.0.0"
-
 [build-dependencies]
 system-deps = "6.0"
 
 [dependencies]
 libc = "0.2"
+
+[features]
+v1_1 = []
+
+[package.metadata.system-deps.dav1d]
+name = "dav1d"
+version = "1.0.0"
+
+[package.metadata.system-deps.dav1d.v1_1]
+version = "1.1.0"
