@@ -160,7 +160,100 @@ impl Settings {
     pub fn get_output_invisible_frames(&self) -> bool {
         self.dav1d_settings.output_invisible_frames != 0
     }
+
+    pub fn set_inloop_filters(&mut self, inloop_filters: InloopFilterType) {
+        self.dav1d_settings.inloop_filters = inloop_filters.bits();
+    }
+
+    pub fn get_inloop_filters(&self) -> InloopFilterType {
+        InloopFilterType::from_bits_truncate(self.dav1d_settings.inloop_filters)
+    }
+
+    #[cfg(feature = "v1_1")]
+    pub fn set_decode_frame_type(&mut self, decode_frame_type: DecodeFrameType) {
+        self.dav1d_settings.decode_frame_type = decode_frame_type.into();
+    }
+
+    #[cfg(feature = "v1_1")]
+    pub fn get_decode_frame_type(&self) -> DecodeFrameType {
+        DecodeFrameType::try_from(self.dav1d_settings.decode_frame_type)
+            .expect("Invalid Dav1dDecodeFrameType")
+    }
 }
+
+bitflags::bitflags! {
+    #[derive(Default)]
+    pub struct InloopFilterType: u32 {
+        const DEBLOCK = DAV1D_INLOOPFILTER_DEBLOCK;
+        const CDEF = DAV1D_INLOOPFILTER_CDEF;
+        const RESTORATION = DAV1D_INLOOPFILTER_RESTORATION;
+    }
+}
+
+#[cfg(feature = "v1_1")]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum DecodeFrameType {
+    All,
+    Reference,
+    Intra,
+    Key,
+}
+
+#[cfg(feature = "v1_1")]
+impl Default for DecodeFrameType {
+    fn default() -> Self {
+        DecodeFrameType::All
+    }
+}
+
+#[cfg(feature = "v1_1")]
+impl TryFrom<u32> for DecodeFrameType {
+    type Error = TryFromEnumError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            DAV1D_DECODEFRAMETYPE_ALL => Ok(DecodeFrameType::All),
+            DAV1D_DECODEFRAMETYPE_REFERENCE => Ok(DecodeFrameType::Reference),
+            DAV1D_DECODEFRAMETYPE_INTRA => Ok(DecodeFrameType::Intra),
+            DAV1D_DECODEFRAMETYPE_KEY => Ok(DecodeFrameType::Key),
+            _ => Err(TryFromEnumError(())),
+        }
+    }
+}
+
+#[cfg(feature = "v1_1")]
+impl From<DecodeFrameType> for u32 {
+    fn from(v: DecodeFrameType) -> u32 {
+        match v {
+            DecodeFrameType::All => DAV1D_DECODEFRAMETYPE_ALL,
+            DecodeFrameType::Reference => DAV1D_DECODEFRAMETYPE_REFERENCE,
+            DecodeFrameType::Intra => DAV1D_DECODEFRAMETYPE_INTRA,
+            DecodeFrameType::Key => DAV1D_DECODEFRAMETYPE_KEY,
+        }
+    }
+}
+
+#[cfg(feature = "v1_1")]
+/// The error type returned when a conversion from a C enum fails.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct TryFromEnumError(());
+
+#[cfg(feature = "v1_1")]
+impl std::fmt::Display for TryFromEnumError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fmt.write_str("Invalid enum value")
+    }
+}
+
+#[cfg(feature = "v1_1")]
+impl From<std::convert::Infallible> for TryFromEnumError {
+    fn from(x: std::convert::Infallible) -> TryFromEnumError {
+        match x {}
+    }
+}
+
+#[cfg(feature = "v1_1")]
+impl std::error::Error for TryFromEnumError {}
 
 /// A `dav1d` decoder instance.
 #[derive(Debug)]
