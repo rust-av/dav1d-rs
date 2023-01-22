@@ -320,6 +320,10 @@ impl Decoder {
     ///
     /// If this returns `Err([Error::Again])` then further data has to be sent to the decoder
     /// before further decoded frames become available.
+    ///
+    /// To make most use of frame threading this function should only be called once per submitted
+    /// input frame and not until it returns `Err([Error::Again])`. Calling it in a loop should
+    /// only be done to drain all pending frames at the end.
     pub fn get_picture(&mut self) -> Result<Picture, Error> {
         unsafe {
             let mut pic: Dav1dPicture = mem::zeroed();
