@@ -74,7 +74,7 @@ struct Opt {
 use std::fs::File;
 use std::io::BufReader;
 
-fn handle_pending_pictures(dec: &mut dav1d::Decoder) {
+fn handle_pending_pictures(dec: &mut dav1d::Decoder, drain: bool) {
     loop {
         match dec.get_picture() {
             Ok(p) => println!("{:?}", p),
@@ -83,6 +83,10 @@ fn handle_pending_pictures(dec: &mut dav1d::Decoder) {
             Err(e) => {
                 panic!("Error getting decoded pictures: {}", e);
             }
+        }
+
+        if !drain {
+            break;
         }
     }
 }
@@ -107,7 +111,7 @@ fn main() -> std::io::Result<()> {
                 // pending pictures and send pending data to the decoder
                 // until it is all used up.
                 loop {
-                    handle_pending_pictures(&mut dec);
+                    handle_pending_pictures(&mut dec, false);
 
                     match dec.send_pending_data() {
                         Err(e) if e.is_again() => continue,
@@ -125,8 +129,11 @@ fn main() -> std::io::Result<()> {
         }
 
         // Handle all pending pictures before sending the next data.
-        handle_pending_pictures(&mut dec);
+        handle_pending_pictures(&mut dec, false);
     }
+
+    // Handle all pending pictures that were not output yet.
+    handle_pending_pictures(&mut dec, true);
 
     Ok(())
 }
