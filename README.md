@@ -8,6 +8,10 @@ It is a simple FFI binding and safe abstraction over [dav1d][1].
 To build the code, always have a look at [CI](https://github.com/rust-av/dav1d-rs/blob/master/.github/workflows/dav1d.yml) to install the necessary dependencies on all
 supported operating systems.
 
+### Overriding the dav1d library
+
+The bindings use [system-deps](https://docs.rs/system-deps) to find dav1d. You may override the `PKG_CONFIG_PATH` or
+direcly set the env vars `SYSTEM_DEPS_DAV1D_SEARCH_NATIVE` and/or `SYSTEM_DEPS_DAV1D_LIB`.
 
 ## Building with vcpkg for Windows x64
 
