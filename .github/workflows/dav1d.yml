@@ -37,7 +37,7 @@ jobs:
         DAV1D_DIR: dav1d_dir
         LIB_PATH: lib/x86_64-linux-gnu
       run: |
-        git clone --branch 1.0.0 --depth 1 https://code.videolan.org/videolan/dav1d.git
+        git clone --branch 1.1.0 --depth 1 https://code.videolan.org/videolan/dav1d.git
         cd dav1d
         meson build -Dprefix=$HOME/$DAV1D_DIR --buildtype release
         ninja -C build
