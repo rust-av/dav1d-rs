@@ -7,7 +7,7 @@ mod build {
     use std::process::{Command, Stdio};
 
     const REPO: &str = "https://code.videolan.org/videolan/dav1d.git";
-    const TAG: &str = "1.0.0";
+    const TAG: &str = "1.1.0";
 
     macro_rules! runner {
         ($cmd:expr, $($arg:expr),*) => {
