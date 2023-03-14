@@ -182,7 +182,7 @@ impl Settings {
 }
 
 bitflags::bitflags! {
-    #[derive(Default)]
+    #[derive(Copy, Clone, Debug, PartialEq, Eq, Default)]
     pub struct InloopFilterType: u32 {
         const DEBLOCK = DAV1D_INLOOPFILTER_DEBLOCK;
         const CDEF = DAV1D_INLOOPFILTER_CDEF;
