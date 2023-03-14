@@ -10,7 +10,7 @@ repository = "https://github.com/rust-av/dav1d-rs"
 version = "0.9.3"
 
 [dependencies]
-bitflags = "1"
+bitflags = "2"
 dav1d-sys = { version = "0.7.1", path = "dav1d-sys" }
 
 [features]
