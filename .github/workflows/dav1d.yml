@@ -39,7 +39,7 @@ jobs:
       run: |
         git clone --branch 1.1.0 --depth 1 https://code.videolan.org/videolan/dav1d.git
         cd dav1d
-        meson build -Dprefix=$HOME/$DAV1D_DIR --buildtype release
+        meson build -Dprefix=$HOME/$DAV1D_DIR -Denable_tools=false -Denable_examples=false --buildtype release
         ninja -C build
         ninja -C build install
         echo "PKG_CONFIG_PATH=$HOME/$DAV1D_DIR/$LIB_PATH/pkgconfig" >> $GITHUB_ENV
@@ -49,32 +49,58 @@ jobs:
       run: |
         cargo test --workspace --all-features
 
-  windows-tests-gnu:
+  windows-tests-msvc:
 
     runs-on: windows-latest
 
-    env:
-      MSYSTEM: MINGW64
-      MSYS2_PATH_TYPE: inherit
-
     steps:
     - uses: actions/checkout@v3
+    - uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Install Rust Windows gnu
+    - name: Install nasm
+      uses: ilammy/setup-nasm@v1
+
+    - name: Install Rust stable MSVC
       uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable-x86_64-pc-windows-gnu
+        toolchain: stable-x86_64-pc-windows-msvc
         override: true
 
-    - name: Install msys2 packages
-      uses: msys2/setup-msys2@v2
+    - name: Install Python 3.9
+      uses: actions/setup-python@v4
       with:
-        msystem: MINGW64
-        install: mingw-w64-x86_64-pkgconf mingw-w64-x86_64-dav1d
-        update: true
+        python-version: '3.9'
+
+    - name: Install pip packages
+      run: |
+        pip install -U pip
+        pip install -U wheel setuptools
+        pip install -U meson ninja
+
+    - name: Setting up environment
+      shell: bash
+      run: |
+        echo "PKG_CONFIG=c:\build\bin\pkg-config.exe" >> $GITHUB_ENV
+        echo "PKG_CONFIG_PATH=C:\build\lib\pkgconfig" >> $GITHUB_ENV
+        echo "C:\build\bin" >> $GITHUB_PATH
+
+    - name: Build pkg-config
+      run: |
+        git clone --branch meson-glib-subproject --depth 1 https://gitlab.freedesktop.org/tpm/pkg-config.git
+        cd pkg-config
+        meson build -Dprefix=C:\build --buildtype release
+        ninja -C build
+        ninja -C build install
+
+    - name: Build dav1d
+      run: |
+        git clone --branch 1.1.0 --depth 1 https://code.videolan.org/videolan/dav1d.git
+        cd dav1d
+        meson build -Dprefix=C:\build -Denable_tools=false -Denable_examples=false --buildtype release
+        ninja -C build
+        ninja -C build install
 
     - name: Run tests
-      shell: msys2 {0}
       run: |
         cargo test --workspace --all-features
