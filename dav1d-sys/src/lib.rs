@@ -611,11 +611,11 @@ pub struct Dav1dSettings {
     pub strict_std_compliance: c_int,
     pub output_invisible_frames: c_int,
     pub inloop_filters: Dav1dInloopFilterType,
+    #[cfg(not(feature = "v1_1"))]
+    pub reserved: [u8; 20usize],
     #[cfg(feature = "v1_1")]
     pub decode_frame_type: Dav1dDecodeFrameType,
     #[cfg(feature = "v1_1")]
-    pub reserved: [u8; 20usize],
-    #[cfg(not(feature = "v1_1"))]
     pub reserved: [u8; 16usize],
 }
 
@@ -688,6 +688,20 @@ extern "C" {
 mod tests {
     use super::*;
     use std::ffi::CStr;
+
+    macro_rules! assert_size (
+        ($t:ty, $sz:expr) => (
+            assert_eq!(::std::mem::size_of::<$t>(), $sz);
+        );
+    );
+
+    #[test]
+    fn size() {
+        #[cfg(target_pointer_width = "64")]
+        assert_size!(Dav1dSettings, 96);
+        #[cfg(target_pointer_width = "32")]
+        assert_size!(Dav1dSettings, 76);
+    }
 
     #[test]
     fn version() {
