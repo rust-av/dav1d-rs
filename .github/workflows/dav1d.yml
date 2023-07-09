@@ -15,11 +15,9 @@ jobs:
       uses: ilammy/setup-nasm@v1
 
     - name: Install Rust stable
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        profile: minimal
         toolchain: stable
-        override: true
 
     - name: Install Python 3.9
       uses: actions/setup-python@v4
@@ -61,11 +59,9 @@ jobs:
       uses: ilammy/setup-nasm@v1
 
     - name: Install Rust stable MSVC
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@stable
       with:
-        profile: minimal
         toolchain: stable-x86_64-pc-windows-msvc
-        override: true
 
     - name: Install Python 3.9
       uses: actions/setup-python@v4
