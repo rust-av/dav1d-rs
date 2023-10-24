@@ -136,15 +136,10 @@ pub const DAV1D_PRIMARY_REF_NONE: usize = 7;
 pub const DAV1D_REFS_PER_FRAME: usize = 7;
 pub const DAV1D_TOTAL_REFS_PER_FRAME: usize = DAV1D_REFS_PER_FRAME + 1;
 
-#[cfg(feature = "v1_1")]
 pub const DAV1D_DECODEFRAMETYPE_ALL: Dav1dDecodeFrameType = 0;
-#[cfg(feature = "v1_1")]
 pub const DAV1D_DECODEFRAMETYPE_REFERENCE: Dav1dDecodeFrameType = 1;
-#[cfg(feature = "v1_1")]
 pub const DAV1D_DECODEFRAMETYPE_INTRA: Dav1dDecodeFrameType = 2;
-#[cfg(feature = "v1_1")]
 pub const DAV1D_DECODEFRAMETYPE_KEY: Dav1dDecodeFrameType = 3;
-#[cfg(feature = "v1_1")]
 pub type Dav1dDecodeFrameType = c_uint;
 
 // Conversion of the C DAV1D_ERR macro
@@ -205,8 +200,8 @@ pub struct Dav1dWarpedMotionParamsUP {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dContentLightLevel {
-    pub max_content_light_level: c_int,
-    pub max_frame_average_light_level: c_int,
+    pub max_content_light_level: u16,
+    pub max_frame_average_light_level: u16,
 }
 
 #[repr(C)]
@@ -230,7 +225,7 @@ pub struct Dav1dITUTT35 {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dSequenceHeader {
-    pub profile: c_int,
+    pub profile: u8,
     pub max_width: c_int,
     pub max_height: c_int,
     pub layout: Dav1dPixelLayout,
@@ -238,50 +233,50 @@ pub struct Dav1dSequenceHeader {
     pub trc: Dav1dTransferCharacteristics,
     pub mtrx: Dav1dMatrixCoefficients,
     pub chr: Dav1dChromaSamplePosition,
-    pub hbd: c_int,
-    pub color_range: c_int,
-    pub num_operating_points: c_int,
+    pub hbd: u8,
+    pub color_range: u8,
+    pub num_operating_points: u8,
     pub operating_points: [Dav1dSequenceHeaderOperatingPoint; DAV1D_MAX_OPERATING_POINTS],
-    pub still_picture: c_int,
-    pub reduced_still_picture_header: c_int,
-    pub timing_info_present: c_int,
-    pub num_units_in_tick: c_int,
-    pub time_scale: c_int,
-    pub equal_picture_interval: c_int,
-    pub num_ticks_per_picture: c_uint,
-    pub decoder_model_info_present: c_int,
-    pub encoder_decoder_buffer_delay_length: c_int,
-    pub num_units_in_decoding_tick: c_int,
-    pub buffer_removal_delay_length: c_int,
-    pub frame_presentation_delay_length: c_int,
-    pub display_model_info_present: c_int,
-    pub width_n_bits: c_int,
-    pub height_n_bits: c_int,
-    pub frame_id_numbers_present: c_int,
-    pub delta_frame_id_n_bits: c_int,
-    pub frame_id_n_bits: c_int,
-    pub sb128: c_int,
-    pub filter_intra: c_int,
-    pub intra_edge_filter: c_int,
-    pub inter_intra: c_int,
-    pub masked_compound: c_int,
-    pub warped_motion: c_int,
-    pub dual_filter: c_int,
-    pub order_hint: c_int,
-    pub jnt_comp: c_int,
-    pub ref_frame_mvs: c_int,
+    pub still_picture: u8,
+    pub reduced_still_picture_header: u8,
+    pub timing_info_present: u8,
+    pub num_units_in_tick: u32,
+    pub time_scale: u32,
+    pub equal_picture_interval: u8,
+    pub num_ticks_per_picture: u32,
+    pub decoder_model_info_present: u8,
+    pub encoder_decoder_buffer_delay_length: u8,
+    pub num_units_in_decoding_tick: u32,
+    pub buffer_removal_delay_length: u8,
+    pub frame_presentation_delay_length: u8,
+    pub display_model_info_present: u8,
+    pub width_n_bits: u8,
+    pub height_n_bits: u8,
+    pub frame_id_numbers_present: u8,
+    pub delta_frame_id_n_bits: u8,
+    pub frame_id_n_bits: u8,
+    pub sb128: u8,
+    pub filter_intra: u8,
+    pub intra_edge_filter: u8,
+    pub inter_intra: u8,
+    pub masked_compound: u8,
+    pub warped_motion: u8,
+    pub dual_filter: u8,
+    pub order_hint: u8,
+    pub jnt_comp: u8,
+    pub ref_frame_mvs: u8,
     pub screen_content_tools: Dav1dAdaptiveBoolean,
     pub force_integer_mv: Dav1dAdaptiveBoolean,
-    pub order_hint_n_bits: c_int,
-    pub super_res: c_int,
-    pub cdef: c_int,
-    pub restoration: c_int,
-    pub ss_hor: c_int,
-    pub ss_ver: c_int,
-    pub monochrome: c_int,
-    pub color_description_present: c_int,
-    pub separate_uv_delta_q: c_int,
-    pub film_grain_present: c_int,
+    pub order_hint_n_bits: u8,
+    pub super_res: u8,
+    pub cdef: u8,
+    pub restoration: u8,
+    pub ss_hor: u8,
+    pub ss_ver: u8,
+    pub monochrome: u8,
+    pub color_description_present: u8,
+    pub separate_uv_delta_q: u8,
+    pub film_grain_present: u8,
     pub operating_parameter_info:
         [Dav1dSequenceHeaderOperatingParameterInfo; DAV1D_MAX_OPERATING_POINTS],
 }
@@ -289,49 +284,49 @@ pub struct Dav1dSequenceHeader {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dSequenceHeaderOperatingPoint {
-    pub major_level: c_int,
-    pub minor_level: c_int,
-    pub initial_display_delay: c_int,
-    pub idc: c_int,
-    pub tier: c_int,
-    pub decoder_model_param_present: c_int,
-    pub display_model_param_present: c_int,
+    pub major_level: u8,
+    pub minor_level: u8,
+    pub initial_display_delay: u16,
+    pub idc: u8,
+    pub tier: u8,
+    pub decoder_model_param_present: u8,
+    pub display_model_param_present: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dSequenceHeaderOperatingParameterInfo {
-    pub decoder_buffer_delay: c_int,
-    pub encoder_buffer_delay: c_int,
-    pub low_delay_mode: c_int,
+    pub decoder_buffer_delay: u32,
+    pub encoder_buffer_delay: u32,
+    pub low_delay_mode: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dSegmentationData {
-    pub delta_q: c_int,
-    pub delta_lf_y_v: c_int,
-    pub delta_lf_y_h: c_int,
-    pub delta_lf_u: c_int,
-    pub delta_lf_v: c_int,
-    pub ref_: c_int,
-    pub skip: c_int,
-    pub globalmv: c_int,
+    pub delta_q: i16,
+    pub delta_lf_y_v: i8,
+    pub delta_lf_y_h: i8,
+    pub delta_lf_u: i8,
+    pub delta_lf_v: i8,
+    pub ref_: i8,
+    pub skip: u8,
+    pub globalmv: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dSegmentationDataSet {
     pub d: [Dav1dSegmentationData; DAV1D_MAX_SEGMENTS],
-    pub preskip: c_int,
-    pub last_active_segid: c_int,
+    pub preskip: u8,
+    pub last_active_segid: i8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dLoopfilterModeRefDeltas {
-    pub mode_delta: [c_int; 2usize],
-    pub ref_delta: [c_int; DAV1D_TOTAL_REFS_PER_FRAME],
+    pub mode_delta: [i8; 2usize],
+    pub ref_delta: [i8; DAV1D_TOTAL_REFS_PER_FRAME],
 }
 
 #[repr(C)]
@@ -363,51 +358,51 @@ pub struct Dav1dFrameHeader {
     pub frame_type: Dav1dFrameType,
     pub width: [c_int; 2usize],
     pub height: c_int,
-    pub frame_offset: c_int,
-    pub temporal_id: c_int,
-    pub spatial_id: c_int,
-    pub show_existing_frame: c_int,
-    pub existing_frame_idx: c_int,
-    pub frame_id: c_int,
-    pub frame_presentation_delay: c_int,
-    pub show_frame: c_int,
-    pub showable_frame: c_int,
-    pub error_resilient_mode: c_int,
-    pub disable_cdf_update: c_int,
-    pub allow_screen_content_tools: c_int,
-    pub force_integer_mv: c_int,
-    pub frame_size_override: c_int,
-    pub primary_ref_frame: c_int,
-    pub buffer_removal_time_present: c_int,
+    pub frame_offset: u8,
+    pub temporal_id: u8,
+    pub spatial_id: u8,
+    pub show_existing_frame: u8,
+    pub existing_frame_idx: u8,
+    pub frame_id: u32,
+    pub frame_presentation_delay: u32,
+    pub show_frame: u8,
+    pub showable_frame: u8,
+    pub error_resilient_mode: u8,
+    pub disable_cdf_update: u8,
+    pub allow_screen_content_tools: u8,
+    pub force_integer_mv: u8,
+    pub frame_size_override: u8,
+    pub primary_ref_frame: u8,
+    pub buffer_removal_time_present: u8,
     pub operating_points: [Dav1dFrameHeaderOperatingPoint; DAV1D_MAX_OPERATING_POINTS],
-    pub refresh_frame_flags: c_int,
+    pub refresh_frame_flags: u8,
     pub render_width: c_int,
     pub render_height: c_int,
     pub super_res: Dav1dFrameHeaderSuperRes,
-    pub have_render_size: c_int,
-    pub allow_intrabc: c_int,
-    pub frame_ref_short_signaling: c_int,
-    pub refidx: [c_int; DAV1D_REFS_PER_FRAME],
-    pub hp: c_int,
+    pub have_render_size: u8,
+    pub allow_intrabc: u8,
+    pub frame_ref_short_signaling: u8,
+    pub refidx: [i8; DAV1D_REFS_PER_FRAME],
+    pub hp: u8,
     pub subpel_filter_mode: Dav1dFilterMode,
-    pub switchable_motion_mode: c_int,
-    pub use_ref_frame_mvs: c_int,
-    pub refresh_context: c_int,
+    pub switchable_motion_mode: u8,
+    pub use_ref_frame_mvs: u8,
+    pub refresh_context: u8,
     pub tiling: Dav1dFrameHeaderTiling,
     pub quant: Dav1dFrameHeaderQuant,
     pub segmentation: Dav1dFrameHeaderSegmentation,
     pub delta: Dav1dFrameHeaderDelta,
-    pub all_lossless: c_int,
+    pub all_lossless: u8,
     pub loopfilter: Dav1dFrameHeaderLoopfilter,
     pub cdef: Dav1dFrameHeaderCDef,
     pub restoration: Dav1dFrameHeaderRestoration,
     pub txfm_mode: Dav1dTxfmMode,
-    pub switchable_comp_refs: c_int,
-    pub skip_mode_allowed: c_int,
-    pub skip_mode_enabled: c_int,
-    pub skip_mode_refs: [c_int; 2usize],
-    pub warp_motion: c_int,
-    pub reduced_txtp_set: c_int,
+    pub switchable_comp_refs: u8,
+    pub skip_mode_allowed: u8,
+    pub skip_mode_enabled: u8,
+    pub skip_mode_refs: [i8; 2usize],
+    pub warp_motion: u8,
+    pub reduced_txtp_set: u8,
     pub gmv: [Dav1dWarpedMotionParams; DAV1D_REFS_PER_FRAME],
 }
 
@@ -415,66 +410,66 @@ pub struct Dav1dFrameHeader {
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderFilmGrain {
     pub data: Dav1dFilmGrainData,
-    pub present: c_int,
-    pub update: c_int,
+    pub present: u8,
+    pub update: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderOperatingPoint {
-    pub buffer_removal_time: c_int,
+    pub buffer_removal_time: u32,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderSuperRes {
-    pub width_scale_denominator: c_int,
-    pub enabled: c_int,
+    pub width_scale_denominator: u8,
+    pub enabled: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderTiling {
-    pub uniform: c_int,
-    pub n_bytes: c_uint,
-    pub min_log2_cols: c_int,
-    pub max_log2_cols: c_int,
-    pub log2_cols: c_int,
-    pub cols: c_int,
-    pub min_log2_rows: c_int,
-    pub max_log2_rows: c_int,
-    pub log2_rows: c_int,
-    pub rows: c_int,
+    pub uniform: u8,
+    pub n_bytes: u8,
+    pub min_log2_cols: u8,
+    pub max_log2_cols: u8,
+    pub log2_cols: u8,
+    pub cols: u8,
+    pub min_log2_rows: u8,
+    pub max_log2_rows: u8,
+    pub log2_rows: u8,
+    pub rows: u8,
     pub col_start_sb: [u16; DAV1D_MAX_TILE_COLS + 1],
     pub row_start_sb: [u16; DAV1D_MAX_TILE_ROWS + 1],
-    pub update: c_int,
+    pub update: u16,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderQuant {
-    pub yac: c_int,
-    pub ydc_delta: c_int,
-    pub udc_delta: c_int,
-    pub uac_delta: c_int,
-    pub vdc_delta: c_int,
-    pub vac_delta: c_int,
-    pub qm: c_int,
-    pub qm_y: c_int,
-    pub qm_u: c_int,
-    pub qm_v: c_int,
+    pub yac: u8,
+    pub ydc_delta: i8,
+    pub udc_delta: i8,
+    pub uac_delta: i8,
+    pub vdc_delta: i8,
+    pub vac_delta: i8,
+    pub qm: u8,
+    pub qm_y: u8,
+    pub qm_u: u8,
+    pub qm_v: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderSegmentation {
-    pub enabled: c_int,
-    pub update_map: c_int,
-    pub temporal: c_int,
-    pub update_data: c_int,
+    pub enabled: u8,
+    pub update_map: u8,
+    pub temporal: u8,
+    pub update_data: u8,
     pub seg_data: Dav1dSegmentationDataSet,
-    pub lossless: [c_int; DAV1D_MAX_SEGMENTS],
-    pub qidx: [c_int; DAV1D_MAX_SEGMENTS],
+    pub lossless: [u8; DAV1D_MAX_SEGMENTS],
+    pub qidx: [u8; DAV1D_MAX_SEGMENTS],
 }
 
 #[repr(C)]
@@ -487,44 +482,44 @@ pub struct Dav1dFrameHeaderDelta {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dDeltaQ {
-    pub present: c_int,
-    pub res_log2: c_int,
+    pub present: u8,
+    pub res_log2: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dDeltaLF {
-    pub present: c_int,
-    pub res_log2: c_int,
-    pub multi: c_int,
+    pub present: u8,
+    pub res_log2: u8,
+    pub multi: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderLoopfilter {
-    pub level_y: [c_int; 2usize],
-    pub level_u: c_int,
-    pub level_v: c_int,
-    pub mode_ref_delta_enabled: c_int,
-    pub mode_ref_delta_update: c_int,
+    pub level_y: [u8; 2usize],
+    pub level_u: u8,
+    pub level_v: u8,
+    pub mode_ref_delta_enabled: u8,
+    pub mode_ref_delta_update: u8,
     pub mode_ref_deltas: Dav1dLoopfilterModeRefDeltas,
-    pub sharpness: c_int,
+    pub sharpness: u8,
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderCDef {
-    pub damping: c_int,
-    pub n_bits: c_int,
-    pub y_strength: [c_int; DAV1D_MAX_CDEF_STRENGTHS],
-    pub uv_strength: [c_int; DAV1D_MAX_CDEF_STRENGTHS],
+    pub damping: u8,
+    pub n_bits: u8,
+    pub y_strength: [u8; DAV1D_MAX_CDEF_STRENGTHS],
+    pub uv_strength: [u8; DAV1D_MAX_CDEF_STRENGTHS],
 }
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Dav1dFrameHeaderRestoration {
     pub type_: [Dav1dRestorationType; 3usize],
-    pub unit_size: [c_int; 2usize],
+    pub unit_size: [u8; 2usize],
 }
 
 #[repr(C)]
@@ -554,6 +549,7 @@ pub struct Dav1dPicture {
     pub content_light_ref: *mut Dav1dRef,
     pub mastering_display_ref: *mut Dav1dRef,
     pub itut_t35_ref: *mut Dav1dRef,
+    pub n_itut_t34: usize,
     pub reserved_ref: [usize; 4usize],
     pub ref_: *mut Dav1dRef,
     pub allocator_data: *mut c_void,
@@ -611,11 +607,7 @@ pub struct Dav1dSettings {
     pub strict_std_compliance: c_int,
     pub output_invisible_frames: c_int,
     pub inloop_filters: Dav1dInloopFilterType,
-    #[cfg(not(feature = "v1_1"))]
-    pub reserved: [u8; 20usize],
-    #[cfg(feature = "v1_1")]
     pub decode_frame_type: Dav1dDecodeFrameType,
-    #[cfg(feature = "v1_1")]
     pub reserved: [u8; 16usize],
 }
 
@@ -625,6 +617,8 @@ pub struct Dav1dRef(c_void);
 
 extern "C" {
     pub fn dav1d_version() -> *const c_char;
+
+    pub fn dav1d_version_api() -> u32;
 
     pub fn dav1d_default_settings(s: *mut Dav1dSettings);
 
@@ -647,7 +641,6 @@ extern "C" {
         out: *mut Dav1dDataProps,
     ) -> c_int;
 
-    #[cfg(feature = "v1_1")]
     pub fn dav1d_get_frame_delay(c: *mut Dav1dContext) -> c_int;
 
     pub fn dav1d_apply_grain(
