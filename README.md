@@ -41,7 +41,7 @@ steps above.
 
 ## Supported versions
 
-The bindings require dav1d 1.0.0
+The bindings require dav1d 1.3.0
 
 ## TODO
 - [x] Simple bindings
