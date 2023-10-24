@@ -76,4 +76,9 @@ fn main() {
         .add_build_internal("dav1d", build::build_from_src)
         .probe()
         .unwrap();
+
+    pkg_config::Config::new()
+        .range_version("1.0.0"..="1.2.1")
+        .probe("dav1d")
+        .unwrap();
 }
