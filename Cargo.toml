@@ -11,7 +11,7 @@ version = "0.9.6"
 
 [dependencies]
 bitflags = "2"
-dav1d-sys = { version = "0.7.2", path = "dav1d-sys" }
+dav1d-sys = { version = "0.7.3", path = "dav1d-sys" }
 
 [features]
 v1_1 = ["dav1d-sys/v1_1"]
