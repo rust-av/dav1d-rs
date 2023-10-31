@@ -23,7 +23,7 @@ mod build {
 
     pub fn build_from_src(
         lib: &str,
-        version: &str,
+        _version: &str,
     ) -> Result<system_deps::Library, system_deps::BuildInternalClosureError> {
         let build_dir = "build";
         let release_dir = "release";
@@ -67,7 +67,7 @@ mod build {
         runner!("meson", "install", "-C", build_path.to_str().unwrap());
 
         let pkg_dir = build_path.join("meson-private");
-        system_deps::Library::from_internal_pkg_config(&pkg_dir, lib, version)
+        system_deps::Library::from_internal_pkg_config(&pkg_dir, lib, TAG)
     }
 }
 
@@ -75,10 +75,5 @@ fn main() {
     system_deps::Config::new()
         .add_build_internal("dav1d", build::build_from_src)
         .probe()
-        .unwrap();
-
-    pkg_config::Config::new()
-        .range_version("1.0.0"..="1.2.1")
-        .probe("dav1d")
         .unwrap();
 }
