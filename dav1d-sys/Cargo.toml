@@ -1,11 +1,12 @@
 [package]
 name = "dav1d-sys"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to dav1d"
 repository = "https://github.com/rust-av/dav1d-rs"
 edition = "2021"
+readme = "../README.md"
 
 build = "build.rs"
 
