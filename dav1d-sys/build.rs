@@ -72,6 +72,10 @@ mod build {
 }
 
 fn main() {
+    if std::env::var("DOCS_RS").is_ok() {
+        return;
+    }
+
     system_deps::Config::new()
         .add_build_internal("dav1d", build::build_from_src)
         .probe()
