@@ -1,6 +1,6 @@
 [package]
 name = "dav1d-sys"
-version = "0.8.1"
+version = "0.8.2"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to dav1d"
