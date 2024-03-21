@@ -1,5 +1,6 @@
 use dav1d_sys::*;
 
+pub use av_data::pixel;
 use std::ffi::c_void;
 use std::fmt;
 use std::i64;
@@ -639,6 +640,97 @@ impl Picture {
     /// provided.
     pub fn offset(&self) -> i64 {
         self.inner.pic.m.offset
+    }
+
+    /// Chromaticity coordinates of the source colour primaries.
+    pub fn color_primaries(&self) -> pixel::ColorPrimaries {
+        unsafe {
+            #[allow(non_upper_case_globals)]
+            match (*self.inner.pic.seq_hdr).pri {
+                DAV1D_COLOR_PRI_BT709 => pixel::ColorPrimaries::BT709,
+                DAV1D_COLOR_PRI_UNKNOWN => pixel::ColorPrimaries::Unspecified,
+                DAV1D_COLOR_PRI_BT470M => pixel::ColorPrimaries::BT470M,
+                DAV1D_COLOR_PRI_BT470BG => pixel::ColorPrimaries::BT470BG,
+                DAV1D_COLOR_PRI_BT601 => pixel::ColorPrimaries::BT470BG,
+                DAV1D_COLOR_PRI_SMPTE240 => pixel::ColorPrimaries::ST240M,
+                DAV1D_COLOR_PRI_FILM => pixel::ColorPrimaries::Film,
+                DAV1D_COLOR_PRI_BT2020 => pixel::ColorPrimaries::BT2020,
+                DAV1D_COLOR_PRI_XYZ => pixel::ColorPrimaries::ST428,
+                DAV1D_COLOR_PRI_SMPTE431 => pixel::ColorPrimaries::P3DCI,
+                DAV1D_COLOR_PRI_SMPTE432 => pixel::ColorPrimaries::P3Display,
+                DAV1D_COLOR_PRI_EBU3213 => pixel::ColorPrimaries::Tech3213,
+                23..=DAV1D_COLOR_PRI_RESERVED => pixel::ColorPrimaries::Unspecified,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    /// Transfer characteristics function.
+    pub fn transfer_characteristic(&self) -> pixel::TransferCharacteristic {
+        unsafe {
+            #[allow(non_upper_case_globals)]
+            match (*self.inner.pic.seq_hdr).trc {
+                DAV1D_TRC_BT709 => pixel::TransferCharacteristic::BT1886,
+                DAV1D_TRC_UNKNOWN => pixel::TransferCharacteristic::Unspecified,
+                DAV1D_TRC_BT470M => pixel::TransferCharacteristic::BT470M,
+                DAV1D_TRC_BT470BG => pixel::TransferCharacteristic::BT470BG,
+                DAV1D_TRC_BT601 => pixel::TransferCharacteristic::ST170M,
+                DAV1D_TRC_SMPTE240 => pixel::TransferCharacteristic::ST240M,
+                DAV1D_TRC_LINEAR => pixel::TransferCharacteristic::Linear,
+                DAV1D_TRC_LOG100 => pixel::TransferCharacteristic::Logarithmic100,
+                DAV1D_TRC_LOG100_SQRT10 => pixel::TransferCharacteristic::Logarithmic316,
+                DAV1D_TRC_IEC61966 => pixel::TransferCharacteristic::SRGB,
+                DAV1D_TRC_BT1361 => pixel::TransferCharacteristic::BT1886,
+                DAV1D_TRC_SRGB => pixel::TransferCharacteristic::SRGB,
+                DAV1D_TRC_BT2020_10BIT => pixel::TransferCharacteristic::BT2020Ten,
+                DAV1D_TRC_BT2020_12BIT => pixel::TransferCharacteristic::BT2020Twelve,
+                DAV1D_TRC_SMPTE2084 => pixel::TransferCharacteristic::PerceptualQuantizer,
+                DAV1D_TRC_SMPTE428 => pixel::TransferCharacteristic::ST428,
+                DAV1D_TRC_HLG => pixel::TransferCharacteristic::HybridLogGamma,
+                19..=DAV1D_TRC_RESERVED => pixel::TransferCharacteristic::Unspecified,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    /// Matrix coefficients used in deriving luma and chroma signals from the
+    /// green, blue and red or X, Y and Z primaries.
+    pub fn matrix_coefficients(&self) -> pixel::MatrixCoefficients {
+        unsafe {
+            #[allow(non_upper_case_globals)]
+            match (*self.inner.pic.seq_hdr).mtrx {
+                DAV1D_MC_IDENTITY => pixel::MatrixCoefficients::Identity,
+                DAV1D_MC_BT709 => pixel::MatrixCoefficients::BT709,
+                DAV1D_MC_UNKNOWN => pixel::MatrixCoefficients::Unspecified,
+                DAV1D_MC_FCC => pixel::MatrixCoefficients::BT470M,
+                DAV1D_MC_BT470BG => pixel::MatrixCoefficients::BT470BG,
+                DAV1D_MC_BT601 => pixel::MatrixCoefficients::BT470BG,
+                DAV1D_MC_SMPTE240 => pixel::MatrixCoefficients::ST240M,
+                DAV1D_MC_SMPTE_YCGCO => pixel::MatrixCoefficients::YCgCo,
+                DAV1D_MC_BT2020_NCL => pixel::MatrixCoefficients::BT2020NonConstantLuminance,
+                DAV1D_MC_BT2020_CL => pixel::MatrixCoefficients::BT2020ConstantLuminance,
+                DAV1D_MC_SMPTE2085 => pixel::MatrixCoefficients::ST2085,
+                DAV1D_MC_CHROMAT_NCL => {
+                    pixel::MatrixCoefficients::ChromaticityDerivedNonConstantLuminance
+                }
+                DAV1D_MC_CHROMAT_CL => {
+                    pixel::MatrixCoefficients::ChromaticityDerivedConstantLuminance
+                }
+                DAV1D_MC_ICTCP => pixel::MatrixCoefficients::ICtCp,
+                15..=DAV1D_MC_RESERVED => pixel::MatrixCoefficients::Unspecified,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    /// YUV color range.
+    pub fn color_range(&self) -> pixel::YUVRange {
+        unsafe {
+            match (*self.inner.pic.seq_hdr).color_range {
+                0 => pixel::YUVRange::Limited,
+                _ => pixel::YUVRange::Full,
+            }
+        }
     }
 }
 
