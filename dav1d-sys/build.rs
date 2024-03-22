@@ -67,7 +67,7 @@ mod build {
         runner!("meson", "install", "-C", build_path.to_str().unwrap());
 
         let pkg_dir = build_path.join("meson-private");
-        system_deps::Library::from_internal_pkg_config(&pkg_dir, lib, TAG)
+        system_deps::Library::from_internal_pkg_config(pkg_dir, lib, TAG)
     }
 }
 

@@ -189,18 +189,13 @@ bitflags::bitflags! {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Eq)]
 pub enum DecodeFrameType {
+    #[default]
     All,
     Reference,
     Intra,
     Key,
-}
-
-impl Default for DecodeFrameType {
-    fn default() -> Self {
-        DecodeFrameType::All
-    }
 }
 
 impl TryFrom<u32> for DecodeFrameType {
@@ -418,6 +413,8 @@ impl Decoder {
             } else {
                 let inner = InnerPicture { pic };
                 Ok(Picture {
+                    // https://github.com/rust-av/dav1d-rs/issues/95
+                    #[allow(clippy::arc_with_non_send_sync)]
                     inner: Arc::new(inner),
                 })
             }
@@ -561,7 +558,7 @@ impl Picture {
                 PixelLayout::I400 | PixelLayout::I422 | PixelLayout::I444 => self.height(),
             },
         };
-        (self.stride(component) as u32, height)
+        (self.stride(component), height)
     }
 
     /// Plane data of the `component` for the decoded frame.
@@ -631,7 +628,7 @@ impl Picture {
     /// This is the same duration as the one provided to [`Decoder::send_data`] or `0` if none was
     /// provided.
     pub fn duration(&self) -> i64 {
-        self.inner.pic.m.duration as i64
+        self.inner.pic.m.duration
     }
 
     /// Offset of the frame.
