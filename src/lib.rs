@@ -78,6 +78,9 @@ pub struct Settings {
     dav1d_settings: Dav1dSettings,
 }
 
+unsafe impl Send for Settings {}
+unsafe impl Sync for Settings {}
+
 impl Default for Settings {
     fn default() -> Self {
         Self::new()
