@@ -413,8 +413,6 @@ impl Decoder {
             } else {
                 let inner = InnerPicture { pic };
                 Ok(Picture {
-                    // https://github.com/rust-av/dav1d-rs/issues/95
-                    #[allow(clippy::arc_with_non_send_sync)]
                     inner: Arc::new(inner),
                 })
             }
@@ -733,6 +731,9 @@ impl Picture {
 
 unsafe impl Send for Picture {}
 unsafe impl Sync for Picture {}
+
+unsafe impl Send for InnerPicture {}
+unsafe impl Sync for InnerPicture {}
 
 impl Drop for InnerPicture {
     fn drop(&mut self) {
