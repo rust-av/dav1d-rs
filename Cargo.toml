@@ -13,6 +13,7 @@ version = "0.10.2"
 bitflags = "2"
 dav1d-sys = { version = "0.8.2", path = "dav1d-sys" }
 av-data = "0.4.2"
+static_assertions = "1"
 
 [features]
 
