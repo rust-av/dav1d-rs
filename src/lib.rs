@@ -522,8 +522,7 @@ impl std::ops::Deref for Plane {
     }
 }
 
-unsafe impl Send for Plane {}
-unsafe impl Sync for Plane {}
+static_assertions::assert_impl_all!(Plane: Send, Sync);
 
 /// Number of bits per component.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -729,8 +728,7 @@ impl Picture {
     }
 }
 
-unsafe impl Send for Picture {}
-unsafe impl Sync for Picture {}
+static_assertions::assert_impl_all!(Picture: Send, Sync);
 
 unsafe impl Send for InnerPicture {}
 unsafe impl Sync for InnerPicture {}
