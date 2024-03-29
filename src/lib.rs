@@ -729,6 +729,18 @@ impl Picture {
             }
         }
     }
+
+    /// Sample position for subsampled chroma.
+    pub fn chroma_location(&self) -> pixel::ChromaLocation {
+        // According to y4m mapping declared in dav1d's output/y4m2.c and applied from FFmpeg's yuv4mpegdec.c
+        unsafe {
+            match (*self.inner.pic.seq_hdr).chr {
+                DAV1D_CHR_UNKNOWN | DAV1D_CHR_COLOCATED => pixel::ChromaLocation::Center,
+                DAV1D_CHR_VERTICAL => pixel::ChromaLocation::Left,
+                _ => unreachable!(),
+            }
+        }
+    }
 }
 
 static_assertions::assert_impl_all!(Picture: Send, Sync);
