@@ -7,7 +7,7 @@ license = "MIT"
 name = "dav1d"
 readme = "README.md"
 repository = "https://github.com/rust-av/dav1d-rs"
-version = "0.10.2"
+version = "0.10.3"
 
 [dependencies]
 bitflags = "2"
