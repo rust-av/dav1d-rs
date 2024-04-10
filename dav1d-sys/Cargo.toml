@@ -1,6 +1,6 @@
 [package]
 name = "dav1d-sys"
-version = "0.8.2"
+version = "0.8.3"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
 license = "MIT"
 description = "FFI bindings to dav1d"
@@ -11,7 +11,7 @@ readme = "../README.md"
 build = "build.rs"
 
 [build-dependencies]
-system-deps = "6.2"
+system-deps = "6.2.1"
 
 [dependencies]
 libc = "0.2"
