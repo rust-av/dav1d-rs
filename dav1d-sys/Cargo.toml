@@ -11,7 +11,7 @@ readme = "../README.md"
 build = "build.rs"
 
 [build-dependencies]
-system-deps = "6.2"
+system-deps = "7"
 
 [dependencies]
 libc = "0.2"
