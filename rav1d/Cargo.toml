@@ -1,0 +1,69 @@
+[package]
+name = "rav1d"
+authors = ["Rav1d Developers", "Prossimo"]
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.79"
+description = "Rust port of the dav1d AV1 decoder"
+license = "BSD-2-Clause"
+repository = "https://github.com/memorysafety/rav1d"
+exclude = ["*.c", "*.h", "*.in", "meson*", "tests/", "doc/", "package/"]
+
+[lib]
+path = "lib.rs"
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+assert_matches = "1.5.0"
+atomig = { version = "0.4.0", features = ["derive"] }
+bitflags = "2.4.0"
+cfg-if = "1.0.0"
+libc = "0.2"
+parking_lot = "0.12.2"
+paste = "1.0.14"
+raw-cpuid = "11.0.1"
+strum = { version = "0.26", features = ["derive"] }
+to_method = "1.1.0"
+zerocopy = { version = "0.7.32", features = ["derive"] }
+
+[build-dependencies]
+cc = "1.0.79"
+nasm-rs = { version = "0.3", features = ["parallel"] }
+
+[features]
+default = [
+  "asm",
+  "asm_arm64_dotprod",
+  "asm_arm64_i8mm",
+  "bitdepth_8",
+  "bitdepth_16",
+]
+asm = []
+asm_arm64_dotprod = ["asm"]
+asm_arm64_i8mm = ["asm"]
+bitdepth_8 = []
+bitdepth_16 = []
+
+[profile.dev]
+panic = "abort"
+
+[profile.opt-dev]
+# The debug builds run tests very slowly so this profile keeps debug assertions
+# while enabling basic optimizations. The profile is not suitable for debugging.
+inherits = "dev"
+opt-level = 1
+
+[profile.release]
+codegen-units = 1
+panic = "abort"
+lto = "fat"
+
+[profile.release-with-debug]
+inherits = "release"
+debug = "line-tables-only"
+
+[profile.checked-release]
+# Close to a release build, but with all checks enabled.
+inherits = "dev"
+opt-level = 2
+codegen-units = 16

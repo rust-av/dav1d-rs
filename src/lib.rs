@@ -1,12 +1,34 @@
-use dav1d_sys::*;
-
 pub use av_data::pixel;
 use std::ffi::c_void;
 use std::fmt;
-use std::i64;
 use std::mem;
-use std::ptr;
+use std::ptr::NonNull;
 use std::sync::Arc;
+
+use rav1d::include::dav1d::data::*;
+use rav1d::include::dav1d::dav1d::*;
+use rav1d::include::dav1d::headers::*;
+use rav1d::include::dav1d::picture::*;
+use rav1d::src::error::{Rav1dError, Rav1dResult};
+use rav1d::src::lib::*;
+use rav1d::src::send_sync_non_null::SendSyncNonNull;
+use rav1d::Dav1dResult;
+
+fn option_nonnull<T>(ptr: *mut T) -> Option<NonNull<T>> {
+    if ptr.is_null() {
+        None
+    } else {
+        Some(NonNull::new(ptr).unwrap())
+    }
+}
+
+fn option_send_sync_non_null<T: Send + Sync>(r#box: Box<T>) -> Option<SendSyncNonNull<T>> {
+    Some(SendSyncNonNull::from_box(r#box))
+}
+
+fn rav1d_result(ret: Dav1dResult) -> Rav1dResult {
+    Rav1dResult::try_from(ret).unwrap()
+}
 
 /// Error enum return by various `dav1d` operations.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -34,18 +56,16 @@ pub enum Error {
     /// The provided bitstream is not supported by `dav1d`.
     UnsupportedBitstream,
     /// Unknown error.
-    UnknownError(i32),
+    UnknownError(Rav1dError),
 }
 
-impl From<i32> for Error {
-    fn from(err: i32) -> Self {
-        assert!(err < 0);
-
+impl From<Rav1dError> for Error {
+    fn from(err: Rav1dError) -> Self {
         match err {
-            DAV1D_ERR_AGAIN => Error::Again,
-            DAV1D_ERR_INVAL => Error::InvalidArgument,
-            DAV1D_ERR_NOMEM => Error::NotEnoughMemory,
-            DAV1D_ERR_NOPROTOOPT => Error::UnsupportedBitstream,
+            Rav1dError::EAGAIN => Error::Again,
+            Rav1dError::ENOMEM => Error::NotEnoughMemory,
+            Rav1dError::EINVAL => Error::InvalidArgument,
+            Rav1dError::ENOPROTOOPT => Error::UnsupportedBitstream,
             _ => Error::UnknownError(err),
         }
     }
@@ -73,7 +93,6 @@ impl std::error::Error for Error {}
 
 /// Settings for creating a new [`Decoder`] instance.
 /// See documentation for native `Dav1dSettings` struct.
-#[derive(Debug)]
 pub struct Settings {
     dav1d_settings: Dav1dSettings,
 }
@@ -93,7 +112,7 @@ impl Settings {
         unsafe {
             let mut dav1d_settings = mem::MaybeUninit::uninit();
 
-            dav1d_default_settings(dav1d_settings.as_mut_ptr());
+            dav1d_default_settings(NonNull::new(dav1d_settings.as_mut_ptr()).unwrap());
 
             Self {
                 dav1d_settings: dav1d_settings.assume_init(),
@@ -245,13 +264,16 @@ impl From<std::convert::Infallible> for TryFromEnumError {
 impl std::error::Error for TryFromEnumError {}
 
 /// A `dav1d` decoder instance.
-#[derive(Debug)]
 pub struct Decoder {
-    dec: ptr::NonNull<Dav1dContext>,
+    dec: Dav1dContext,
     pending_data: Option<Dav1dData>,
 }
 
-unsafe extern "C" fn release_wrapped_data<T: AsRef<[u8]>>(_data: *const u8, cookie: *mut c_void) {
+unsafe extern "C" fn release_wrapped_data<T: AsRef<[u8]>>(
+    _data: *const u8,
+    cookie: Option<SendSyncNonNull<std::ffi::c_void>>,
+) {
+    let cookie = cookie.unwrap().as_ptr().as_ptr();
     let buf = Box::from_raw(cookie as *mut T);
     drop(buf);
 }
@@ -262,16 +284,18 @@ impl Decoder {
         unsafe {
             let mut dec = mem::MaybeUninit::uninit();
 
-            let ret = dav1d_open(dec.as_mut_ptr(), &settings.dav1d_settings);
+            let ret = dav1d_open(
+                Some(NonNull::new(dec.as_mut_ptr()).unwrap()),
+                Some(NonNull::new(&settings.dav1d_settings as *const _ as *mut _).unwrap()),
+            );
 
-            if ret < 0 {
-                return Err(Error::from(ret));
+            match rav1d_result(ret) {
+                Ok(_) => Ok(Decoder {
+                    dec: dec.assume_init().unwrap(),
+                    pending_data: None,
+                }),
+                Err(err) => Err(Error::from(err)),
             }
-
-            Ok(Decoder {
-                dec: ptr::NonNull::new(dec.assume_init()).unwrap(),
-                pending_data: None,
-            })
         }
     }
 
@@ -287,9 +311,9 @@ impl Decoder {
     /// All currently pending frames are available afterwards via [`Decoder::get_picture`].
     pub fn flush(&mut self) {
         unsafe {
-            dav1d_flush(self.dec.as_ptr());
+            dav1d_flush(self.dec);
             if let Some(mut pending_data) = self.pending_data.take() {
-                dav1d_data_unref(&mut pending_data);
+                dav1d_data_unref(Some(NonNull::new(&mut pending_data).unwrap()));
             }
         }
     }
@@ -303,7 +327,7 @@ impl Decoder {
     ///
     /// If a previous call returned [`Error::Again`] then this must not be called again until
     /// [`Decoder::send_pending_data`] has returned `Ok(())`.
-    pub fn send_data<T: AsRef<[u8]> + Send + 'static>(
+    pub fn send_data<T: AsRef<[u8]> + Send + Sync + 'static>(
         &mut self,
         buf: T,
         offset: Option<i64>,
@@ -322,11 +346,11 @@ impl Decoder {
         unsafe {
             let mut data: Dav1dData = mem::zeroed();
             let _ret = dav1d_data_wrap(
-                &mut data,
-                slice.as_ptr(),
+                option_nonnull(&mut data),
+                option_nonnull(slice.as_ptr() as *mut _),
                 len,
                 Some(release_wrapped_data::<T>),
-                Box::into_raw(buf) as *mut c_void,
+                option_send_sync_non_null(buf).map(|v| v.cast()),
             );
             if let Some(offset) = offset {
                 data.m.offset = offset;
@@ -338,14 +362,14 @@ impl Decoder {
                 data.m.duration = duration;
             }
 
-            let ret = dav1d_send_data(self.dec.as_ptr(), &mut data);
-            if ret < 0 {
-                let ret = Error::from(ret);
+            let ret = dav1d_send_data(Some(self.dec), option_nonnull(&mut data));
+            if let Err(err) = rav1d_result(ret) {
+                let ret = Error::from(err);
 
                 if ret.is_again() {
                     self.pending_data = Some(data);
                 } else {
-                    dav1d_data_unref(&mut data);
+                    dav1d_data_unref(option_nonnull(&mut data));
                 }
 
                 return Err(ret);
@@ -376,14 +400,14 @@ impl Decoder {
         };
 
         unsafe {
-            let ret = dav1d_send_data(self.dec.as_ptr(), &mut data);
-            if ret < 0 {
-                let ret = Error::from(ret);
+            let ret = dav1d_send_data(Some(self.dec), option_nonnull(&mut data));
+            if let Err(err) = rav1d_result(ret) {
+                let ret = Error::from(err);
 
                 if ret.is_again() {
                     self.pending_data = Some(data);
                 } else {
-                    dav1d_data_unref(&mut data);
+                    dav1d_data_unref(option_nonnull(&mut data));
                 }
 
                 return Err(ret);
@@ -409,10 +433,10 @@ impl Decoder {
     pub fn get_picture(&mut self) -> Result<Picture, Error> {
         unsafe {
             let mut pic: Dav1dPicture = mem::zeroed();
-            let ret = dav1d_get_picture(self.dec.as_ptr(), &mut pic);
+            let ret = dav1d_get_picture(Some(self.dec), option_nonnull(&mut pic));
 
-            if ret < 0 {
-                Err(Error::from(ret))
+            if let Err(err) = rav1d_result(ret) {
+                Err(Error::from(err))
             } else {
                 let inner = InnerPicture { pic };
                 Ok(Picture {
@@ -424,7 +448,7 @@ impl Decoder {
 
     /// Get the decoder delay.
     pub fn get_frame_delay(&self) -> u32 {
-        unsafe { dav1d_get_frame_delay(self.dec.as_ptr()) as u32 }
+        unsafe { dav1d_get_frame_delay(option_nonnull(&self.dec as *const _ as *mut _)).0 as u32 }
     }
 }
 
@@ -432,10 +456,10 @@ impl Drop for Decoder {
     fn drop(&mut self) {
         unsafe {
             if let Some(mut pending_data) = self.pending_data.take() {
-                dav1d_data_unref(&mut pending_data);
+                dav1d_data_unref(option_nonnull(&mut pending_data));
             }
-            let mut dec = self.dec.as_ptr();
-            dav1d_close(&mut dec);
+            let mut dec = Some(self.dec);
+            dav1d_close(option_nonnull(&mut dec));
         };
     }
 }
@@ -443,13 +467,12 @@ impl Drop for Decoder {
 unsafe impl Send for Decoder {}
 unsafe impl Sync for Decoder {}
 
-#[derive(Debug)]
 struct InnerPicture {
     pub pic: Dav1dPicture,
 }
 
 /// A decoded frame.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Picture {
     inner: Arc<InnerPicture>,
 }
@@ -502,7 +525,7 @@ impl From<PlanarImageComponent> for usize {
 /// A single plane of a decoded frame.
 ///
 /// This can be used like a `&[u8]`.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Plane(Picture, PlanarImageComponent);
 
 impl AsRef<[u8]> for Plane {
@@ -544,7 +567,7 @@ impl Picture {
     /// Raw pointer to the data of the `component` for the decoded frame.
     pub fn plane_data_ptr(&self, component: PlanarImageComponent) -> *mut c_void {
         let index: usize = component.into();
-        self.inner.pic.data[index]
+        self.inner.pic.data[index].unwrap().as_ptr()
     }
 
     /// Plane geometry of the `component` for the decoded frame.
@@ -580,7 +603,7 @@ impl Picture {
     /// Check [`Picture::bit_depth`] for the number of storage bits.
     pub fn bits_per_component(&self) -> Option<BitsPerComponent> {
         unsafe {
-            match (*self.inner.pic.seq_hdr).hbd {
+            match (*self.inner.pic.seq_hdr.unwrap().as_ptr()).hbd {
                 0 => Some(BitsPerComponent(8)),
                 1 => Some(BitsPerComponent(10)),
                 2 => Some(BitsPerComponent(12)),
@@ -643,7 +666,7 @@ impl Picture {
     pub fn color_primaries(&self) -> pixel::ColorPrimaries {
         unsafe {
             #[allow(non_upper_case_globals)]
-            match (*self.inner.pic.seq_hdr).pri {
+            match (*self.inner.pic.seq_hdr.unwrap().as_ptr()).pri {
                 DAV1D_COLOR_PRI_BT709 => pixel::ColorPrimaries::BT709,
                 DAV1D_COLOR_PRI_UNKNOWN => pixel::ColorPrimaries::Unspecified,
                 DAV1D_COLOR_PRI_BT470M => pixel::ColorPrimaries::BT470M,
@@ -666,7 +689,7 @@ impl Picture {
     pub fn transfer_characteristic(&self) -> pixel::TransferCharacteristic {
         unsafe {
             #[allow(non_upper_case_globals)]
-            match (*self.inner.pic.seq_hdr).trc {
+            match (*self.inner.pic.seq_hdr.unwrap().as_ptr()).trc {
                 DAV1D_TRC_BT709 => pixel::TransferCharacteristic::BT1886,
                 DAV1D_TRC_UNKNOWN => pixel::TransferCharacteristic::Unspecified,
                 DAV1D_TRC_BT470M => pixel::TransferCharacteristic::BT470M,
@@ -695,7 +718,7 @@ impl Picture {
     pub fn matrix_coefficients(&self) -> pixel::MatrixCoefficients {
         unsafe {
             #[allow(non_upper_case_globals)]
-            match (*self.inner.pic.seq_hdr).mtrx {
+            match (*self.inner.pic.seq_hdr.unwrap().as_ptr()).mtrx {
                 DAV1D_MC_IDENTITY => pixel::MatrixCoefficients::Identity,
                 DAV1D_MC_BT709 => pixel::MatrixCoefficients::BT709,
                 DAV1D_MC_UNKNOWN => pixel::MatrixCoefficients::Unspecified,
@@ -723,7 +746,7 @@ impl Picture {
     /// YUV color range.
     pub fn color_range(&self) -> pixel::YUVRange {
         unsafe {
-            match (*self.inner.pic.seq_hdr).color_range {
+            match (*self.inner.pic.seq_hdr.unwrap().as_ptr()).color_range {
                 0 => pixel::YUVRange::Limited,
                 _ => pixel::YUVRange::Full,
             }
@@ -734,7 +757,7 @@ impl Picture {
     pub fn chroma_location(&self) -> pixel::ChromaLocation {
         // According to y4m mapping declared in dav1d's output/y4m2.c and applied from FFmpeg's yuv4mpegdec.c
         unsafe {
-            match (*self.inner.pic.seq_hdr).chr {
+            match (*self.inner.pic.seq_hdr.unwrap().as_ptr()).chr {
                 DAV1D_CHR_UNKNOWN | DAV1D_CHR_COLOCATED => pixel::ChromaLocation::Center,
                 DAV1D_CHR_VERTICAL => pixel::ChromaLocation::Left,
                 _ => unreachable!(),
@@ -751,7 +774,26 @@ unsafe impl Sync for InnerPicture {}
 impl Drop for InnerPicture {
     fn drop(&mut self) {
         unsafe {
-            dav1d_picture_unref(&mut self.pic);
+            dav1d_picture_unref(option_nonnull(&mut self.pic));
         }
+    }
+}
+
+impl std::fmt::Debug for Picture {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Picture")
+            .field("width", &self.width())
+            .field("height", &self.height())
+            .field("bit_depth", &self.bit_depth())
+            .field("pixel_layout", &self.pixel_layout())
+            .field("timestamp", &self.timestamp())
+            .field("duration", &self.duration())
+            .field("offset", &self.offset())
+            .field("color_primaries", &self.color_primaries())
+            .field("transfer_characteristic", &self.transfer_characteristic())
+            .field("matrix_coefficients", &self.matrix_coefficients())
+            .field("color_range", &self.color_range())
+            .field("chroma_location", &self.chroma_location())
+            .finish()
     }
 }

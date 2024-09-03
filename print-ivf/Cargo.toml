@@ -1,0 +1,11 @@
+[package]
+name = "print-ivf"
+version = "0.1.0"
+authors = ["Luca Barbato <lu_zero@gentoo.org>"]
+edition = "2018"
+
+[dependencies]
+dav1d = { path = "..", version = "0.10" }
+bitstream-io = "2.0"
+log = "0.4"
+structopt = "0.3"
