@@ -976,6 +976,38 @@ impl<A: PictureAllocator> Picture<A> {
             }
         }
     }
+
+    /// Content light level information.
+    pub fn content_light(&self) -> Option<ContentLightLevel> {
+        unsafe {
+            if self.inner.pic.content_light.is_null() {
+                None
+            } else {
+                Some(ContentLightLevel {
+                    max_content_light_level: (*self.inner.pic.content_light)
+                        .max_content_light_level,
+                    max_frame_average_light_level: (*self.inner.pic.content_light)
+                        .max_frame_average_light_level,
+                })
+            }
+        }
+    }
+
+    ///Mastering display information.
+    pub fn mastering_display(&self) -> Option<MasteringDisplay> {
+        unsafe {
+            if self.inner.pic.mastering_display.is_null() {
+                None
+            } else {
+                Some(MasteringDisplay {
+                    primaries: (*self.inner.pic.mastering_display).primaries,
+                    white_point: (*self.inner.pic.mastering_display).white_point,
+                    max_luminance: (*self.inner.pic.mastering_display).max_luminance,
+                    min_luminance: (*self.inner.pic.mastering_display).min_luminance,
+                })
+            }
+        }
+    }
 }
 
 static_assertions::assert_impl_all!(Picture<DefaultAllocator>: Send, Sync, Clone, Debug);
@@ -1390,4 +1422,26 @@ mod test {
         drop(pictures);
         assert_eq!(allocated.load(atomic::Ordering::SeqCst), 0);
     }
+}
+
+/// Content light level information as specified in CEA-861.3, Appendix A.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ContentLightLevel {
+    /// Maximum content light level (MaxCLL) in candela per square metre.
+    pub max_content_light_level: u16,
+    /// Maximum frame average light level (MaxFLL) in candela per square metre.
+    pub max_frame_average_light_level: u16,
+}
+
+/// Mastering display information as specified in SMPTE ST 2086.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MasteringDisplay {
+    /// Red/green/blue XY coordinates of primaries in CIE 1931 color space as 0.16 fixed-point number.
+    pub primaries: [[u16; 2usize]; 3usize],
+    /// XY coordinates of white point in CIE 1931 color space as 0.16 fixed-point number.
+    pub white_point: [u16; 2usize],
+    /// Maximum luminance in candela per square metre as 24.8 fixed-point number.
+    pub max_luminance: u32,
+    /// Minimum luminance in candela per square metre as 18.14 fixed-point number.
+    pub min_luminance: u32,
 }
