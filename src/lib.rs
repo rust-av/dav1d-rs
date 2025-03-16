@@ -1,8 +1,8 @@
 use dav1d_sys::*;
 
 pub use av_data::pixel;
-use std::ffi::c_void;
-use std::fmt;
+use std::ffi::{c_int, c_void};
+use std::fmt::{self, Debug};
 use std::i64;
 use std::mem;
 use std::ptr;
@@ -70,6 +70,107 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+/// Picture parameters used for allocation.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct PictureParameters {
+    /// Width in pixels.
+    pub w: u32,
+    /// Height in pixels.
+    pub h: u32,
+    /// Format of the picture.
+    pub layout: PixelLayout,
+    /// Bits per pixel (8 or 10 bits).
+    pub bit_depth: usize,
+}
+
+// Number of bytes to align AND pad picture memory buffers by, so that SIMD
+// implementations can over-read by a few bytes, and use aligned read/write
+// instructions.
+pub const PICTURE_ALIGNMENT: usize = 64;
+
+/// Allocation for a picture.
+#[derive(Debug, PartialEq, Eq)]
+pub struct PictureAllocation<D: Send + 'static> {
+    /// Pointers to planar image data.
+    ///
+    /// Y is `data[0]`, U is `data[1]`, V is `data[2]`.
+    ///
+    /// The data should be `u8` (for 8 bits) or `u16` (for 10 bits).
+    ///
+    /// The `data[0]`, `data[1]` and `data[2]` must be [`PICTURE_ALIGNMENT`] byte aligned and with a pixel
+    /// width/height multiple of 128 pixels. Any allocated memory area should also be padded by
+    /// [`PICTURE_ALIGNMENT`] bytes.
+    ///
+    /// `data[1]` and `data[2]` must share the same `stride[1]`.
+    pub data: [*mut u8; 3],
+
+    /// Number of bytes between 2 lines in `data[]` for luma in case of `stride[0]` or chroma in
+    /// case of `stride[1]`.
+    pub stride: [isize; 2],
+
+    /// Allocator data that can be retrieved back from the picture later.
+    pub allocator_data: D,
+}
+
+unsafe impl<D: Send + 'static> Send for PictureAllocation<D> {}
+
+pub trait PictureAllocator: Send + Sync + 'static {
+    /// Allocator data that is stored together with the [`Picture`].
+    ///
+    /// This can be retrieved from the picture via [`Picture::allocator_data()`].
+    type AllocatorData: Send + 'static;
+
+    /// Allocate the picture buffer based on `pic_params`.
+    ///
+    /// See the [`PictureAllocation`] documentation for the requirements on the allocated memory.
+    ///
+    /// This function will be called on the main thread (the thread which calls
+    /// [`Decoder::get_picture()`]).
+    ///
+    /// # Safety
+    ///
+    /// This function needs to allocate enough memory with the constraints outlined in the
+    /// [`PictureAllocation`] documentation.
+    unsafe fn alloc_picture(
+        &self,
+        pic_params: &PictureParameters,
+    ) -> Result<PictureAllocation<Self::AllocatorData>, Error>;
+
+    /// Release the picture buffer.
+    ///
+    /// If frame threading is used, this function may be called by the main
+    /// thread (the thread which calls [`Decoder::get_picture()`]) or any of the frame
+    /// threads and thus must be thread-safe. If frame threading is not used,
+    /// this function will only be called on the main thread.
+    ///
+    /// # Safety
+    ///
+    /// This function needs to release the memory in `allocation` and can assume that it
+    /// corresponds to a previous call to [`PictureAllocator::alloc_picture()`].
+    unsafe fn release_picture(&self, allocation: PictureAllocation<Self::AllocatorData>);
+}
+
+/// Default allocator.
+///
+/// Note that this allocator can't be directly instantiated.
+#[derive(Debug)]
+pub struct DefaultAllocator(());
+
+impl PictureAllocator for DefaultAllocator {
+    type AllocatorData = ();
+
+    unsafe fn alloc_picture(
+        &self,
+        _pic_params: &PictureParameters,
+    ) -> Result<PictureAllocation<Self::AllocatorData>, Error> {
+        unimplemented!()
+    }
+
+    unsafe fn release_picture(&self, _allocation: PictureAllocation<Self::AllocatorData>) {
+        unimplemented!()
+    }
+}
 
 /// Settings for creating a new [`Decoder`] instance.
 /// See documentation for native `Dav1dSettings` struct.
@@ -246,10 +347,13 @@ impl std::error::Error for TryFromEnumError {}
 
 /// A `dav1d` decoder instance.
 #[derive(Debug)]
-pub struct Decoder {
+pub struct Decoder<A: PictureAllocator = DefaultAllocator> {
     dec: ptr::NonNull<Dav1dContext>,
     pending_data: Option<Dav1dData>,
+    allocator: Option<Arc<A>>,
 }
+
+static_assertions::assert_impl_all!(Decoder<DefaultAllocator>: Send, Sync, Debug);
 
 unsafe extern "C" fn release_wrapped_data<T: AsRef<[u8]>>(_data: *const u8, cookie: *mut c_void) {
     let buf = Box::from_raw(cookie as *mut T);
@@ -271,6 +375,7 @@ impl Decoder {
             Ok(Decoder {
                 dec: ptr::NonNull::new(dec.assume_init()).unwrap(),
                 pending_data: None,
+                allocator: None,
             })
         }
     }
@@ -279,7 +384,109 @@ impl Decoder {
     pub fn new() -> Result<Self, Error> {
         Self::with_settings(&Settings::default())
     }
+}
 
+unsafe extern "C" fn alloc_picture_callback<A: PictureAllocator>(
+    pic: *mut Dav1dPicture,
+    cookie: *mut c_void,
+) -> c_int {
+    let allocator = &*(cookie as *const A);
+
+    let pic_parameters = PictureParameters {
+        w: (*pic).p.w as u32,
+        h: (*pic).p.h as u32,
+        layout: match (*pic).p.layout {
+            DAV1D_PIXEL_LAYOUT_I400 => PixelLayout::I400,
+            DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
+            DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
+            DAV1D_PIXEL_LAYOUT_I444 => PixelLayout::I444,
+            _ => unreachable!(),
+        },
+        bit_depth: (*pic).p.bpc as usize,
+    };
+
+    let res = allocator.alloc_picture(&pic_parameters);
+    match res {
+        Ok(allocation) => {
+            (*pic).data[0] = allocation.data[0] as *mut c_void;
+            (*pic).data[1] = allocation.data[1] as *mut c_void;
+            (*pic).data[2] = allocation.data[2] as *mut c_void;
+            (*pic).stride[0] = allocation.stride[0];
+            (*pic).stride[1] = allocation.stride[1];
+            (*pic).allocator_data =
+                Box::into_raw(Box::new(allocation.allocator_data)) as *mut c_void;
+
+            0
+        }
+        Err(err) => match err {
+            Error::Again => DAV1D_ERR_AGAIN,
+            Error::InvalidArgument => DAV1D_ERR_INVAL,
+            Error::NotEnoughMemory => DAV1D_ERR_NOMEM,
+            Error::UnsupportedBitstream => DAV1D_ERR_NOPROTOOPT,
+            Error::UnknownError(err) => {
+                assert!(err < 0);
+                err
+            }
+        },
+    }
+}
+
+unsafe extern "C" fn release_picture_callback<A: PictureAllocator>(
+    pic: *mut Dav1dPicture,
+    cookie: *mut c_void,
+) {
+    let allocator = &*(cookie as *const A);
+    let allocator_data = Box::from_raw((*pic).allocator_data as *mut A::AllocatorData);
+    let allocation = PictureAllocation {
+        data: [
+            (*pic).data[0] as *mut u8,
+            (*pic).data[1] as *mut u8,
+            (*pic).data[2] as *mut u8,
+        ],
+        stride: (*pic).stride,
+        allocator_data: *allocator_data,
+    };
+    allocator.release_picture(allocation);
+}
+
+impl<A: PictureAllocator> Decoder<A> {
+    /// Creates a new [`Decoder`] instance with given [`Settings`] and [`PictureAllocator`].
+    pub fn with_settings_and_allocator(settings: &Settings, allocator: A) -> Result<Self, Error> {
+        unsafe {
+            let allocator = Arc::new(allocator);
+
+            let mut dec = mem::MaybeUninit::uninit();
+
+            let settings = Dav1dSettings {
+                allocator: Dav1dPicAllocator {
+                    cookie: &*allocator as *const A as *mut c_void,
+                    alloc_picture_callback: Some(alloc_picture_callback::<A>),
+                    release_picture_callback: Some(release_picture_callback::<A>),
+                },
+                ..settings.dav1d_settings
+            };
+            let ret = dav1d_open(dec.as_mut_ptr(), &settings);
+
+            if ret < 0 {
+                return Err(Error::from(ret));
+            }
+
+            Ok(Decoder {
+                dec: ptr::NonNull::new(dec.assume_init()).unwrap(),
+                pending_data: None,
+                allocator: Some(allocator),
+            })
+        }
+    }
+
+    /// Creates a new [`Decoder`] instance with the default settings and the given
+    /// [`PictureAllocator`].
+    pub fn with_allocator(allocator: A) -> Result<Self, Error> {
+        Self::with_settings_and_allocator(&Settings::default(), allocator)
+    }
+}
+
+impl<A: PictureAllocator> Decoder<A> {
     /// Flush the decoder.
     ///
     /// This flushes all delayed frames in the decoder and clears the internal decoder state.
@@ -406,7 +613,7 @@ impl Decoder {
     /// To make most use of frame threading this function should only be called once per submitted
     /// input frame and not until it returns `Err([Error::Again])`. Calling it in a loop should
     /// only be done to drain all pending frames at the end.
-    pub fn get_picture(&mut self) -> Result<Picture, Error> {
+    pub fn get_picture(&mut self) -> Result<Picture<A>, Error> {
         unsafe {
             let mut pic: Dav1dPicture = mem::zeroed();
             let ret = dav1d_get_picture(self.dec.as_ptr(), &mut pic);
@@ -417,6 +624,7 @@ impl Decoder {
                 let inner = InnerPicture { pic };
                 Ok(Picture {
                     inner: Arc::new(inner),
+                    allocator: self.allocator.clone(),
                 })
             }
         }
@@ -428,7 +636,7 @@ impl Decoder {
     }
 }
 
-impl Drop for Decoder {
+impl<A: PictureAllocator> Drop for Decoder<A> {
     fn drop(&mut self) {
         unsafe {
             if let Some(mut pending_data) = self.pending_data.take() {
@@ -440,8 +648,8 @@ impl Drop for Decoder {
     }
 }
 
-unsafe impl Send for Decoder {}
-unsafe impl Sync for Decoder {}
+unsafe impl<A: PictureAllocator> Send for Decoder<A> {}
+unsafe impl<A: PictureAllocator> Sync for Decoder<A> {}
 
 #[derive(Debug)]
 struct InnerPicture {
@@ -449,9 +657,19 @@ struct InnerPicture {
 }
 
 /// A decoded frame.
-#[derive(Debug, Clone)]
-pub struct Picture {
+#[derive(Debug)]
+pub struct Picture<A: PictureAllocator = DefaultAllocator> {
     inner: Arc<InnerPicture>,
+    allocator: Option<Arc<A>>,
+}
+
+impl<A: PictureAllocator> Clone for Picture<A> {
+    fn clone(&self) -> Self {
+        Picture {
+            inner: self.inner.clone(),
+            allocator: self.allocator.clone(),
+        }
+    }
 }
 
 /// Pixel layout of a frame.
@@ -502,10 +720,16 @@ impl From<PlanarImageComponent> for usize {
 /// A single plane of a decoded frame.
 ///
 /// This can be used like a `&[u8]`.
-#[derive(Clone, Debug)]
-pub struct Plane(Picture, PlanarImageComponent);
+#[derive(Debug)]
+pub struct Plane<A: PictureAllocator = DefaultAllocator>(Picture<A>, PlanarImageComponent);
 
-impl AsRef<[u8]> for Plane {
+impl<A: PictureAllocator> Clone for Plane<A> {
+    fn clone(&self) -> Self {
+        Plane(self.0.clone(), self.1)
+    }
+}
+
+impl<A: PictureAllocator> AsRef<[u8]> for Plane<A> {
     fn as_ref(&self) -> &[u8] {
         let (stride, height) = self.0.plane_data_geometry(self.1);
         unsafe {
@@ -517,7 +741,7 @@ impl AsRef<[u8]> for Plane {
     }
 }
 
-impl std::ops::Deref for Plane {
+impl<A: PictureAllocator> std::ops::Deref for Plane<A> {
     type Target = [u8];
 
     fn deref(&self) -> &Self::Target {
@@ -525,13 +749,13 @@ impl std::ops::Deref for Plane {
     }
 }
 
-static_assertions::assert_impl_all!(Plane: Send, Sync);
+static_assertions::assert_impl_all!(Plane<DefaultAllocator>: Send, Sync, Clone, Debug);
 
 /// Number of bits per component.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct BitsPerComponent(pub usize);
 
-impl Picture {
+impl<A: PictureAllocator> Picture<A> {
     /// Stride in pixels of the `component` for the decoded frame.
     pub fn stride(&self, component: PlanarImageComponent) -> u32 {
         let s = match component {
@@ -562,7 +786,7 @@ impl Picture {
     }
 
     /// Plane data of the `component` for the decoded frame.
-    pub fn plane(&self, component: PlanarImageComponent) -> Plane {
+    pub fn plane(&self, component: PlanarImageComponent) -> Plane<A> {
         Plane(self.clone(), component)
     }
 
@@ -741,9 +965,20 @@ impl Picture {
             }
         }
     }
+
+    /// Allocator data of the picture.
+    pub fn allocator_data(&self) -> Option<&A::AllocatorData> {
+        unsafe {
+            if self.inner.pic.allocator_data.is_null() {
+                None
+            } else {
+                Some(&*(self.inner.pic.allocator_data as *const A::AllocatorData))
+            }
+        }
+    }
 }
 
-static_assertions::assert_impl_all!(Picture: Send, Sync);
+static_assertions::assert_impl_all!(Picture<DefaultAllocator>: Send, Sync, Clone, Debug);
 
 unsafe impl Send for InnerPicture {}
 unsafe impl Sync for InnerPicture {}
@@ -753,5 +988,406 @@ impl Drop for InnerPicture {
         unsafe {
             dav1d_picture_unref(&mut self.pic);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::{
+        collections::HashSet,
+        fmt, ptr,
+        sync::{self, atomic},
+    };
+
+    mod ivf {
+        use bitstream_io::{BitRead, BitReader, LittleEndian};
+        use std::io;
+
+        #[derive(Debug, PartialEq, Eq)]
+        pub struct Header {
+            pub tag: [u8; 4],
+            pub w: u16,
+            pub h: u16,
+            pub timebase_num: u32,
+            pub timebase_den: u32,
+        }
+
+        pub fn read_header(r: &mut dyn io::Read) -> io::Result<Header> {
+            let mut br = BitReader::endian(r, LittleEndian);
+
+            let mut signature = [0u8; 4];
+            let mut tag = [0u8; 4];
+
+            br.read_bytes(&mut signature)?;
+            let _v0: u16 = br.read(16)?;
+            let _v1: u16 = br.read(16)?;
+            br.read_bytes(&mut tag)?;
+
+            let w: u16 = br.read(16)?;
+            let h: u16 = br.read(16)?;
+
+            let timebase_den: u32 = br.read(32)?;
+            let timebase_num: u32 = br.read(32)?;
+
+            let _: u32 = br.read(32)?;
+            let _: u32 = br.read(32)?;
+
+            Ok(Header {
+                tag,
+                w,
+                h,
+                timebase_num,
+                timebase_den,
+            })
+        }
+
+        pub struct Packet {
+            pub data: Box<[u8]>,
+            pub pts: u64,
+        }
+
+        pub fn read_packet(r: &mut dyn io::Read) -> io::Result<Packet> {
+            let mut br = BitReader::endian(r, LittleEndian);
+
+            let len: u32 = br.read(32)?;
+            let pts: u64 = br.read(64)?;
+            let mut buf = vec![0u8; len as usize];
+
+            br.read_bytes(&mut buf)?;
+
+            Ok(Packet {
+                data: buf.into_boxed_slice(),
+                pts,
+            })
+        }
+    }
+
+    static TEST_FILE_420_8: &[u8] = include_bytes!("../test-420-8.ivf");
+    static TEST_FILE_420_12: &[u8] = include_bytes!("../test-420-12.ivf");
+
+    fn handle_pending_pictures<A: super::PictureAllocator + fmt::Debug>(
+        dec: &mut super::Decoder<A>,
+        pictures: &mut Vec<super::Picture<A>>,
+        drain: bool,
+    ) {
+        loop {
+            match dec.get_picture() {
+                Ok(p) => {
+                    println!("{:?}", p);
+                    pictures.push(p);
+                }
+                // Need to send more data to the decoder before it can decode new pictures
+                Err(e) if e.is_again() => return,
+                Err(e) => {
+                    panic!("Error getting decoded pictures: {}", e);
+                }
+            }
+
+            if !drain {
+                break;
+            }
+        }
+    }
+
+    fn check_pictures<A: super::PictureAllocator>(pictures: &[super::Picture<A>], bpp: usize) {
+        assert_eq!(pictures.len(), 5);
+
+        let pts = [0, 33, 67, 100, 133];
+
+        for (i, picture) in pictures.iter().enumerate() {
+            assert_eq!(picture.width(), 320);
+            assert_eq!(picture.height(), 240);
+            assert_eq!(picture.bit_depth(), bpp);
+            assert_eq!(
+                picture.bits_per_component(),
+                Some(super::BitsPerComponent(bpp))
+            );
+            assert_eq!(picture.pixel_layout(), super::PixelLayout::I420);
+            assert_eq!(
+                picture.color_primaries(),
+                super::pixel::ColorPrimaries::BT709
+            );
+            assert_eq!(
+                picture.transfer_characteristic(),
+                super::pixel::TransferCharacteristic::BT1886
+            );
+            assert_eq!(
+                picture.matrix_coefficients(),
+                super::pixel::MatrixCoefficients::BT709,
+            );
+            assert_eq!(
+                picture.chroma_location(),
+                super::pixel::ChromaLocation::Center,
+            );
+            assert_eq!(picture.timestamp(), Some(pts[i]));
+            assert_eq!(picture.offset(), i as i64);
+
+            let stride_mult = if bpp == 8 { 1 } else { 2 };
+
+            assert!(picture.stride(super::PlanarImageComponent::Y) >= 320 * stride_mult);
+            assert!(picture.stride(super::PlanarImageComponent::U) >= 160 * stride_mult);
+            assert!(picture.stride(super::PlanarImageComponent::V) >= 160 * stride_mult);
+
+            assert_eq!(
+                picture
+                    .plane_data_geometry(super::PlanarImageComponent::Y)
+                    .1,
+                240
+            );
+            assert_eq!(
+                picture
+                    .plane_data_geometry(super::PlanarImageComponent::U)
+                    .1,
+                120
+            );
+            assert_eq!(
+                picture
+                    .plane_data_geometry(super::PlanarImageComponent::V)
+                    .1,
+                120
+            );
+
+            assert_eq!(
+                picture.plane(super::PlanarImageComponent::Y).len(),
+                picture.stride(super::PlanarImageComponent::Y) as usize * 240
+            );
+
+            assert_eq!(
+                picture.plane(super::PlanarImageComponent::U).len(),
+                picture.stride(super::PlanarImageComponent::U) as usize * 120
+            );
+
+            assert_eq!(
+                picture.plane(super::PlanarImageComponent::V).len(),
+                picture.stride(super::PlanarImageComponent::V) as usize * 120
+            );
+        }
+    }
+
+    fn decode_file<A: super::PictureAllocator + fmt::Debug>(
+        file: &[u8],
+        mut dec: super::Decoder<A>,
+        pictures: &mut Vec<super::Picture<A>>,
+    ) {
+        use std::io;
+
+        let mut r = io::BufReader::new(file);
+        let header = ivf::read_header(&mut r).unwrap();
+        println!("{:?}", header);
+
+        let mut idx = 0;
+
+        while let Ok(packet) = ivf::read_packet(&mut r) {
+            println!("Packet {}", packet.pts);
+
+            // Let's use millisecond timestamps
+            let pts =
+                1000 * packet.pts as i64 * header.timebase_num as i64 / header.timebase_den as i64;
+
+            // Send packet to the decoder
+            match dec.send_data(packet.data, Some(idx), Some(pts), None) {
+                Err(e) if e.is_again() => {
+                    // If the decoder did not consume all data, output all
+                    // pending pictures and send pending data to the decoder
+                    // until it is all used up.
+                    loop {
+                        handle_pending_pictures(&mut dec, pictures, false);
+
+                        match dec.send_pending_data() {
+                            Err(e) if e.is_again() => continue,
+                            Err(e) => {
+                                panic!("Error sending pending data to the decoder: {}", e);
+                            }
+                            _ => break,
+                        }
+                    }
+                }
+                Err(e) => {
+                    panic!("Error sending data to the decoder: {}", e);
+                }
+                _ => (),
+            }
+
+            // Handle all pending pictures before sending the next data.
+            handle_pending_pictures(&mut dec, pictures, false);
+
+            idx += 1;
+        }
+
+        // Handle all pending pictures that were not output yet.
+        handle_pending_pictures(&mut dec, pictures, true);
+    }
+
+    #[test]
+    fn test_basic_420_8() {
+        let dec = super::Decoder::new().expect("failed to create decoder instance");
+        let mut pictures = vec![];
+        decode_file(TEST_FILE_420_8, dec, &mut pictures);
+        check_pictures(&pictures, 8);
+    }
+
+    #[test]
+    fn test_basic_420_12() {
+        let dec = super::Decoder::new().expect("failed to create decoder instance");
+        let mut pictures = vec![];
+        decode_file(TEST_FILE_420_12, dec, &mut pictures);
+        check_pictures(&pictures, 12);
+    }
+
+    #[derive(Debug)]
+    struct TestAllocator {
+        counter: atomic::AtomicUsize,
+        allocated: sync::Arc<atomic::AtomicUsize>,
+    }
+
+    impl TestAllocator {
+        fn new(allocated: &sync::Arc<atomic::AtomicUsize>) -> Self {
+            TestAllocator {
+                counter: atomic::AtomicUsize::new(0),
+                allocated: allocated.clone(),
+            }
+        }
+    }
+
+    impl super::PictureAllocator for TestAllocator {
+        type AllocatorData = (usize, [std::alloc::Layout; 2]);
+
+        unsafe fn alloc_picture(
+            &self,
+            pic_params: &crate::PictureParameters,
+        ) -> Result<crate::PictureAllocation<Self::AllocatorData>, crate::Error> {
+            fn align(x: usize) -> usize {
+                (x + 128 - 1) & !(128 - 1)
+            }
+
+            let stride_mult = if pic_params.bit_depth == 8 { 1 } else { 2 };
+
+            let (stride, height) = match pic_params.layout {
+                crate::PixelLayout::I400 => (
+                    [align(pic_params.w as usize) * stride_mult, 0],
+                    [align(pic_params.h as usize), 0],
+                ),
+                crate::PixelLayout::I420 => (
+                    [
+                        align(pic_params.w as usize) * stride_mult,
+                        align((pic_params.w as usize + 1) / 2) * stride_mult,
+                    ],
+                    [
+                        align(pic_params.h as usize),
+                        align((pic_params.h as usize + 1) / 2),
+                    ],
+                ),
+                crate::PixelLayout::I422 => (
+                    [
+                        align(pic_params.w as usize) * stride_mult,
+                        align((pic_params.w as usize + 1) / 2) * stride_mult,
+                    ],
+                    [align(pic_params.h as usize), align(pic_params.h as usize)],
+                ),
+                crate::PixelLayout::I444 => (
+                    [
+                        align(pic_params.w as usize) * stride_mult,
+                        align(pic_params.w as usize) * stride_mult,
+                    ],
+                    [align(pic_params.h as usize), align(pic_params.h as usize)],
+                ),
+            };
+
+            let layout_0 = std::alloc::Layout::from_size_align(
+                height[0] * stride[0],
+                super::PICTURE_ALIGNMENT,
+            )
+            .unwrap();
+
+            let data_0 = std::alloc::alloc(layout_0);
+
+            let layout_1;
+            let data_1;
+            let data_2;
+            if stride[1] > 0 {
+                layout_1 = std::alloc::Layout::from_size_align(
+                    height[1] * stride[1],
+                    super::PICTURE_ALIGNMENT,
+                )
+                .unwrap();
+                data_1 = std::alloc::alloc(layout_1);
+                data_2 = std::alloc::alloc(layout_1);
+            } else {
+                layout_1 = layout_0;
+                data_1 = ptr::null_mut();
+                data_2 = ptr::null_mut();
+            }
+
+            self.allocated.fetch_add(1, atomic::Ordering::SeqCst);
+
+            Ok(super::PictureAllocation {
+                data: [data_0, data_1, data_2],
+                stride: [stride[0] as isize, stride[1] as isize],
+                allocator_data: (
+                    self.counter.fetch_add(1, atomic::Ordering::SeqCst),
+                    [layout_0, layout_1],
+                ),
+            })
+        }
+
+        unsafe fn release_picture(
+            &self,
+            allocation: crate::PictureAllocation<Self::AllocatorData>,
+        ) {
+            let prev = self.allocated.fetch_sub(1, atomic::Ordering::SeqCst);
+            assert!(prev > 0);
+
+            std::alloc::dealloc(allocation.data[0], allocation.allocator_data.1[0]);
+            if !allocation.data[1].is_null() {
+                std::alloc::dealloc(allocation.data[1], allocation.allocator_data.1[1]);
+                std::alloc::dealloc(allocation.data[2], allocation.allocator_data.1[1]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_allocator_420_8() {
+        let allocated = sync::Arc::new(atomic::AtomicUsize::new(0));
+
+        let dec = super::Decoder::with_allocator(TestAllocator::new(&allocated))
+            .expect("failed to create decoder instance");
+
+        let mut pictures = vec![];
+        decode_file(TEST_FILE_420_8, dec, &mut pictures);
+        check_pictures(&pictures, 8);
+
+        let mut indices = HashSet::new();
+        for picture in &pictures {
+            let allocator_data = picture.allocator_data().unwrap();
+            assert!(indices.insert(allocator_data.0));
+        }
+        assert_eq!(indices.len(), 5);
+
+        assert_eq!(allocated.load(atomic::Ordering::SeqCst), 5);
+        drop(pictures);
+        assert_eq!(allocated.load(atomic::Ordering::SeqCst), 0);
+    }
+
+    #[test]
+    fn test_allocator_420_12() {
+        let allocated = sync::Arc::new(atomic::AtomicUsize::new(0));
+
+        let dec = super::Decoder::with_allocator(TestAllocator::new(&allocated))
+            .expect("failed to create decoder instance");
+
+        let mut pictures = vec![];
+        decode_file(TEST_FILE_420_12, dec, &mut pictures);
+        check_pictures(&pictures, 12);
+
+        let mut indices = HashSet::new();
+        for picture in &pictures {
+            let allocator_data = picture.allocator_data().unwrap();
+            assert!(indices.insert(allocator_data.0));
+        }
+        assert_eq!(indices.len(), 5);
+
+        assert_eq!(allocated.load(atomic::Ordering::SeqCst), 5);
+        drop(pictures);
+        assert_eq!(allocated.load(atomic::Ordering::SeqCst), 0);
     }
 }
