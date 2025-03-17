@@ -115,7 +115,13 @@ pub struct PictureAllocation<D: Send + 'static> {
 
 unsafe impl<D: Send + 'static> Send for PictureAllocation<D> {}
 
-pub trait PictureAllocator: Send + Sync + 'static {
+/// Picture allocator trait.
+///
+/// # Safety
+///
+/// See documentation of [`PictureAllocator::alloc_picture`] and
+/// [`PictureAllocator::release_picture`] for the requirements of this trait.
+pub unsafe trait PictureAllocator: Send + Sync + 'static {
     /// Allocator data that is stored together with the [`Picture`].
     ///
     /// This can be retrieved from the picture via [`Picture::allocator_data()`].
@@ -157,7 +163,7 @@ pub trait PictureAllocator: Send + Sync + 'static {
 #[derive(Debug)]
 pub struct DefaultAllocator(());
 
-impl PictureAllocator for DefaultAllocator {
+unsafe impl PictureAllocator for DefaultAllocator {
     type AllocatorData = ();
 
     unsafe fn alloc_picture(
@@ -1249,7 +1255,7 @@ mod test {
         }
     }
 
-    impl super::PictureAllocator for TestAllocator {
+    unsafe impl super::PictureAllocator for TestAllocator {
         type AllocatorData = (usize, [std::alloc::Layout; 2]);
 
         unsafe fn alloc_picture(
