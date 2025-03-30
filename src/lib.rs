@@ -72,16 +72,161 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {}
 
 /// Picture parameters used for allocation.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct PictureParameters {
-    /// Width in pixels.
-    pub w: u32,
-    /// Height in pixels.
-    pub h: u32,
-    /// Format of the picture.
-    pub layout: PixelLayout,
-    /// Bits per pixel (8 or 10 bits).
-    pub bit_depth: usize,
+    pic: ptr::NonNull<Dav1dPicture>,
+}
+
+impl PictureParameters {
+    /// Bit depth of the plane data.
+    ///
+    /// This returns 8 or 16 for the underlying integer type used for the plane data.
+    ///
+    /// Check [`PictureParameters::bits_per_component`] for the number of bits that are used.
+    pub fn bit_depth(&self) -> usize {
+        unsafe { self.pic.as_ref().p.bpc as usize }
+    }
+
+    /// Bits used per component of the plane data.
+    ///
+    /// Check [`PictureParameters::bit_depth`] for the number of storage bits.
+    pub fn bits_per_component(&self) -> Option<BitsPerComponent> {
+        unsafe {
+            match (*self.pic.as_ref().seq_hdr).hbd {
+                0 => Some(BitsPerComponent(8)),
+                1 => Some(BitsPerComponent(10)),
+                2 => Some(BitsPerComponent(12)),
+                _ => None,
+            }
+        }
+    }
+
+    /// Width of the frame.
+    pub fn width(&self) -> u32 {
+        unsafe { self.pic.as_ref().p.w as u32 }
+    }
+
+    /// Height of the frame.
+    pub fn height(&self) -> u32 {
+        unsafe { self.pic.as_ref().p.h as u32 }
+    }
+
+    /// Pixel layout of the frame.
+    pub fn pixel_layout(&self) -> PixelLayout {
+        unsafe {
+            #[allow(non_upper_case_globals)]
+            match self.pic.as_ref().p.layout {
+                DAV1D_PIXEL_LAYOUT_I400 => PixelLayout::I400,
+                DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
+                DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
+                DAV1D_PIXEL_LAYOUT_I444 => PixelLayout::I444,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    /// Chromaticity coordinates of the source colour primaries.
+    pub fn color_primaries(&self) -> pixel::ColorPrimaries {
+        unsafe {
+            #[allow(non_upper_case_globals)]
+            match (*self.pic.as_ref().seq_hdr).pri {
+                DAV1D_COLOR_PRI_BT709 => pixel::ColorPrimaries::BT709,
+                DAV1D_COLOR_PRI_UNKNOWN => pixel::ColorPrimaries::Unspecified,
+                DAV1D_COLOR_PRI_BT470M => pixel::ColorPrimaries::BT470M,
+                DAV1D_COLOR_PRI_BT470BG => pixel::ColorPrimaries::BT470BG,
+                DAV1D_COLOR_PRI_BT601 => pixel::ColorPrimaries::BT470BG,
+                DAV1D_COLOR_PRI_SMPTE240 => pixel::ColorPrimaries::ST240M,
+                DAV1D_COLOR_PRI_FILM => pixel::ColorPrimaries::Film,
+                DAV1D_COLOR_PRI_BT2020 => pixel::ColorPrimaries::BT2020,
+                DAV1D_COLOR_PRI_XYZ => pixel::ColorPrimaries::ST428,
+                DAV1D_COLOR_PRI_SMPTE431 => pixel::ColorPrimaries::P3DCI,
+                DAV1D_COLOR_PRI_SMPTE432 => pixel::ColorPrimaries::P3Display,
+                DAV1D_COLOR_PRI_EBU3213 => pixel::ColorPrimaries::Tech3213,
+                23..=DAV1D_COLOR_PRI_RESERVED => pixel::ColorPrimaries::Unspecified,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    /// Transfer characteristics function.
+    pub fn transfer_characteristic(&self) -> pixel::TransferCharacteristic {
+        unsafe {
+            #[allow(non_upper_case_globals)]
+            match (*self.pic.as_ref().seq_hdr).trc {
+                DAV1D_TRC_BT709 => pixel::TransferCharacteristic::BT1886,
+                DAV1D_TRC_UNKNOWN => pixel::TransferCharacteristic::Unspecified,
+                DAV1D_TRC_BT470M => pixel::TransferCharacteristic::BT470M,
+                DAV1D_TRC_BT470BG => pixel::TransferCharacteristic::BT470BG,
+                DAV1D_TRC_BT601 => pixel::TransferCharacteristic::ST170M,
+                DAV1D_TRC_SMPTE240 => pixel::TransferCharacteristic::ST240M,
+                DAV1D_TRC_LINEAR => pixel::TransferCharacteristic::Linear,
+                DAV1D_TRC_LOG100 => pixel::TransferCharacteristic::Logarithmic100,
+                DAV1D_TRC_LOG100_SQRT10 => pixel::TransferCharacteristic::Logarithmic316,
+                DAV1D_TRC_IEC61966 => pixel::TransferCharacteristic::SRGB,
+                DAV1D_TRC_BT1361 => pixel::TransferCharacteristic::BT1886,
+                DAV1D_TRC_SRGB => pixel::TransferCharacteristic::SRGB,
+                DAV1D_TRC_BT2020_10BIT => pixel::TransferCharacteristic::BT2020Ten,
+                DAV1D_TRC_BT2020_12BIT => pixel::TransferCharacteristic::BT2020Twelve,
+                DAV1D_TRC_SMPTE2084 => pixel::TransferCharacteristic::PerceptualQuantizer,
+                DAV1D_TRC_SMPTE428 => pixel::TransferCharacteristic::ST428,
+                DAV1D_TRC_HLG => pixel::TransferCharacteristic::HybridLogGamma,
+                19..=DAV1D_TRC_RESERVED => pixel::TransferCharacteristic::Unspecified,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    /// Matrix coefficients used in deriving luma and chroma signals from the
+    /// green, blue and red or X, Y and Z primaries.
+    pub fn matrix_coefficients(&self) -> pixel::MatrixCoefficients {
+        unsafe {
+            #[allow(non_upper_case_globals)]
+            match (*self.pic.as_ref().seq_hdr).mtrx {
+                DAV1D_MC_IDENTITY => pixel::MatrixCoefficients::Identity,
+                DAV1D_MC_BT709 => pixel::MatrixCoefficients::BT709,
+                DAV1D_MC_UNKNOWN => pixel::MatrixCoefficients::Unspecified,
+                DAV1D_MC_FCC => pixel::MatrixCoefficients::BT470M,
+                DAV1D_MC_BT470BG => pixel::MatrixCoefficients::BT470BG,
+                DAV1D_MC_BT601 => pixel::MatrixCoefficients::BT470BG,
+                DAV1D_MC_SMPTE240 => pixel::MatrixCoefficients::ST240M,
+                DAV1D_MC_SMPTE_YCGCO => pixel::MatrixCoefficients::YCgCo,
+                DAV1D_MC_BT2020_NCL => pixel::MatrixCoefficients::BT2020NonConstantLuminance,
+                DAV1D_MC_BT2020_CL => pixel::MatrixCoefficients::BT2020ConstantLuminance,
+                DAV1D_MC_SMPTE2085 => pixel::MatrixCoefficients::ST2085,
+                DAV1D_MC_CHROMAT_NCL => {
+                    pixel::MatrixCoefficients::ChromaticityDerivedNonConstantLuminance
+                }
+                DAV1D_MC_CHROMAT_CL => {
+                    pixel::MatrixCoefficients::ChromaticityDerivedConstantLuminance
+                }
+                DAV1D_MC_ICTCP => pixel::MatrixCoefficients::ICtCp,
+                15..=DAV1D_MC_RESERVED => pixel::MatrixCoefficients::Unspecified,
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    /// YUV color range.
+    pub fn color_range(&self) -> pixel::YUVRange {
+        unsafe {
+            match (*self.pic.as_ref().seq_hdr).color_range {
+                0 => pixel::YUVRange::Limited,
+                _ => pixel::YUVRange::Full,
+            }
+        }
+    }
+
+    /// Sample position for subsampled chroma.
+    pub fn chroma_location(&self) -> pixel::ChromaLocation {
+        // According to y4m mapping declared in dav1d's output/y4m2.c and applied from FFmpeg's yuv4mpegdec.c
+        unsafe {
+            match (*self.pic.as_ref().seq_hdr).chr {
+                DAV1D_CHR_UNKNOWN | DAV1D_CHR_COLOCATED => pixel::ChromaLocation::Center,
+                DAV1D_CHR_VERTICAL => pixel::ChromaLocation::Left,
+                _ => unreachable!(),
+            }
+        }
+    }
 }
 
 // Number of bytes to align AND pad picture memory buffers by, so that SIMD
@@ -399,16 +544,7 @@ unsafe extern "C" fn alloc_picture_callback<A: PictureAllocator>(
     let allocator = &*(cookie as *const A);
 
     let pic_parameters = PictureParameters {
-        w: (*pic).p.w as u32,
-        h: (*pic).p.h as u32,
-        layout: match (*pic).p.layout {
-            DAV1D_PIXEL_LAYOUT_I400 => PixelLayout::I400,
-            DAV1D_PIXEL_LAYOUT_I420 => PixelLayout::I420,
-            DAV1D_PIXEL_LAYOUT_I422 => PixelLayout::I422,
-            DAV1D_PIXEL_LAYOUT_I444 => PixelLayout::I444,
-            _ => unreachable!(),
-        },
-        bit_depth: (*pic).p.bpc as usize,
+        pic: ptr::NonNull::new_unchecked(pic),
     };
 
     let res = allocator.alloc_picture(&pic_parameters);
@@ -1298,36 +1434,42 @@ mod test {
                 (x + 128 - 1) & !(128 - 1)
             }
 
-            let stride_mult = if pic_params.bit_depth == 8 { 1 } else { 2 };
+            let stride_mult = if pic_params.bit_depth() == 8 { 1 } else { 2 };
 
-            let (stride, height) = match pic_params.layout {
+            let (stride, height) = match pic_params.pixel_layout() {
                 crate::PixelLayout::I400 => (
-                    [align(pic_params.w as usize) * stride_mult, 0],
-                    [align(pic_params.h as usize), 0],
+                    [align(pic_params.width() as usize) * stride_mult, 0],
+                    [align(pic_params.height() as usize), 0],
                 ),
                 crate::PixelLayout::I420 => (
                     [
-                        align(pic_params.w as usize) * stride_mult,
-                        align((pic_params.w as usize + 1) / 2) * stride_mult,
+                        align(pic_params.width() as usize) * stride_mult,
+                        align((pic_params.width() as usize + 1) / 2) * stride_mult,
                     ],
                     [
-                        align(pic_params.h as usize),
-                        align((pic_params.h as usize + 1) / 2),
+                        align(pic_params.height() as usize),
+                        align((pic_params.height() as usize + 1) / 2),
                     ],
                 ),
                 crate::PixelLayout::I422 => (
                     [
-                        align(pic_params.w as usize) * stride_mult,
-                        align((pic_params.w as usize + 1) / 2) * stride_mult,
+                        align(pic_params.width() as usize) * stride_mult,
+                        align((pic_params.width() as usize + 1) / 2) * stride_mult,
                     ],
-                    [align(pic_params.h as usize), align(pic_params.h as usize)],
+                    [
+                        align(pic_params.height() as usize),
+                        align(pic_params.height() as usize),
+                    ],
                 ),
                 crate::PixelLayout::I444 => (
                     [
-                        align(pic_params.w as usize) * stride_mult,
-                        align(pic_params.w as usize) * stride_mult,
+                        align(pic_params.width() as usize) * stride_mult,
+                        align(pic_params.width() as usize) * stride_mult,
                     ],
-                    [align(pic_params.h as usize), align(pic_params.h as usize)],
+                    [
+                        align(pic_params.height() as usize),
+                        align(pic_params.height() as usize),
+                    ],
                 ),
             };
 
