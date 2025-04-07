@@ -16,7 +16,7 @@ av-data = "0.4.2"
 static_assertions = "1"
 
 [dev-dependencies]
-bitstream-io = "2.0"
+bitstream-io = "3.0"
 
 [features]
 
