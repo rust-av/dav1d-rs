@@ -773,8 +773,15 @@ impl<A: PictureAllocator> Decoder<A> {
     }
 
     /// Get the decoder delay.
-    pub fn get_frame_delay(&self) -> u32 {
-        unsafe { dav1d_get_frame_delay(self.dec.as_ptr()) as u32 }
+    pub fn get_frame_delay(&self) -> Result<u32, Error> {
+        unsafe {
+            let ret = dav1d_get_frame_delay(self.dec.as_ptr());
+            if ret < 0 {
+                Err(Error::from(ret))
+            } else {
+                Ok(ret as u32)
+            }
+        }
     }
 }
 
