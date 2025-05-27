@@ -7,6 +7,7 @@ description = "FFI bindings to dav1d"
 repository = "https://github.com/rust-av/dav1d-rs"
 edition = "2021"
 readme = "../README.md"
+rust-version = "1.78"
 
 build = "build.rs"
 
