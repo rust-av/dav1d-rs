@@ -1,5 +1,5 @@
 mod ivf {
-    use bitstream_io::{BitRead, BitReader, LittleEndian};
+    use bitstream_io::{ByteRead, ByteReader, LittleEndian};
     use std::io;
 
     #[derive(Debug, PartialEq, Eq)]
@@ -12,26 +12,26 @@ mod ivf {
     }
 
     pub fn read_header(r: &mut dyn io::Read) -> io::Result<Header> {
-        let mut br = BitReader::endian(r, LittleEndian);
+        let mut br = ByteReader::endian(r, LittleEndian);
 
         let mut signature = [0u8; 4];
         let mut tag = [0u8; 4];
 
         br.read_bytes(&mut signature)?;
-        let v0: u16 = br.read(16)?;
-        let v1: u16 = br.read(16)?;
+        let v0 = br.read::<u16>()?;
+        let v1 = br.read::<u16>()?;
         br.read_bytes(&mut tag)?;
 
         log::debug!("sign {:?} version {} {} tag {:?}", &signature, v0, v1, &tag);
 
-        let w: u16 = br.read(16)?;
-        let h: u16 = br.read(16)?;
+        let w = br.read::<u16>()?;
+        let h = br.read::<u16>()?;
 
-        let timebase_den: u32 = br.read(32)?;
-        let timebase_num: u32 = br.read(32)?;
+        let timebase_den = br.read::<u32>()?;
+        let timebase_num = br.read::<u32>()?;
 
-        let _: u32 = br.read(32)?;
-        let _: u32 = br.read(32)?;
+        let _ = br.read::<u32>()?;
+        let _ = br.read::<u32>()?;
 
         Ok(Header {
             tag,
@@ -48,10 +48,10 @@ mod ivf {
     }
 
     pub fn read_packet(r: &mut dyn io::Read) -> io::Result<Packet> {
-        let mut br = BitReader::endian(r, LittleEndian);
+        let mut br = ByteReader::endian(r, LittleEndian);
 
-        let len: u32 = br.read(32)?;
-        let pts: u64 = br.read(64)?;
+        let len = br.read::<u32>()?;
+        let pts = br.read::<u64>()?;
         let mut buf = vec![0u8; len as usize];
 
         br.read_bytes(&mut buf)?;
