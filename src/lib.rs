@@ -881,12 +881,11 @@ impl<A: PictureAllocator> Clone for Plane<A> {
 impl<A: PictureAllocator> AsRef<[u8]> for Plane<A> {
     fn as_ref(&self) -> &[u8] {
         let (stride, height) = self.0.plane_data_geometry(self.1);
-        unsafe {
-            std::slice::from_raw_parts(
-                self.0.plane_data_ptr(self.1) as *const u8,
-                (stride * height) as usize,
-            )
+        let data = self.0.plane_data_ptr(self.1) as *const u8;
+        if stride == 0 || data.is_null() {
+            return &[];
         }
+        unsafe { std::slice::from_raw_parts(data, (stride * height) as usize)) }
     }
 }
 
