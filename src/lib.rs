@@ -885,7 +885,7 @@ impl<A: PictureAllocator> AsRef<[u8]> for Plane<A> {
         if stride == 0 || data.is_null() {
             return &[];
         }
-        unsafe { std::slice::from_raw_parts(data, (stride * height) as usize)) }
+        unsafe { std::slice::from_raw_parts(data, stride as usize * height as usize) }
     }
 }
 
