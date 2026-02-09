@@ -927,7 +927,8 @@ impl<A: PictureAllocator> Picture<A> {
             PlanarImageComponent::Y => self.height(),
             _ => match self.pixel_layout() {
                 PixelLayout::I420 => (self.height() + 1) / 2,
-                PixelLayout::I400 | PixelLayout::I422 | PixelLayout::I444 => self.height(),
+                PixelLayout::I422 | PixelLayout::I444 => self.height(),
+                PixelLayout::I400 => return (0, 0) // grayscale doesn't have color components
             },
         };
         (self.stride(component), height)
