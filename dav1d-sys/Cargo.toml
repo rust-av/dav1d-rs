@@ -12,7 +12,7 @@ rust-version = "1.78"
 build = "build.rs"
 
 [build-dependencies]
-system-deps = "7"
+system-deps = "8"
 
 [dependencies]
 libc = "0.2"
