@@ -286,8 +286,8 @@ pub struct Dav1dSequenceHeader {
 pub struct Dav1dSequenceHeaderOperatingPoint {
     pub major_level: u8,
     pub minor_level: u8,
-    pub initial_display_delay: u16,
-    pub idc: u8,
+    pub initial_display_delay: u8,
+    pub idc: u16,
     pub tier: u8,
     pub decoder_model_param_present: u8,
     pub display_model_param_present: u8,
