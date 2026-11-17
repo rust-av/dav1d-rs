@@ -48,6 +48,16 @@ fn decode() -> Result<(), Error> {
 
 See the crate documentation on [docs.rs](https://docs.rs/dav1d) for the full API, including picture allocation hooks, metadata accessors, and the `dav1d_picture()` escape hatch for interoperating with libraries that consume dav1d's native structures (e.g. libplacebo).
 
+## Command line tool
+
+The workspace also contains `dav1d-tools`, an unpublished binary that mirrors the `dav1d` command line tool. It detects IVF, Annex B and Section 5 streams, writes y4m, raw yuv or md5 output, and supports the same options (`--limit`, `--skip`, `--verify`, per-frame output and so on):
+
+```sh
+cargo run -p dav1d-tools -- -i input.ivf -o output.y4m
+```
+
+It requires Rust 1.88 because of its `winnow-args` dependency.
+
 ## Building
 
 You need a C toolchain, `meson`, and `ninja` if `libdav1d` is not already installed system-wide. `system-deps` locates the library through `pkg-config`; when no suitable system copy is found it can build dav1d internally.

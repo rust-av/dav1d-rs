@@ -76,7 +76,8 @@ jobs:
     - name: Check MSRV
       env:
         SYSTEM_DEPS_DAV1D_BUILD_INTERNAL: always
-      run: cargo check --workspace --all-features --all-targets
+      # `dav1d-tools` is not published and needs 1.88 through winnow-args.
+      run: cargo check -p dav1d -p dav1d-sys --all-features --all-targets
 
   windows-tests-msvc:
 
