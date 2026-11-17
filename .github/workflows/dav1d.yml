@@ -47,6 +47,37 @@ jobs:
       run: |
         cargo test --workspace --all-features
 
+  msrv:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Install nasm
+      uses: ilammy/setup-nasm@v1
+
+    - name: Install Rust 1.85
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: "1.85.0"
+
+    - name: Install Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install pip packages
+      run: |
+        pip install -U pip
+        pip install -U wheel setuptools
+        pip install -U meson ninja
+
+    - name: Check MSRV
+      env:
+        SYSTEM_DEPS_DAV1D_BUILD_INTERNAL: always
+      run: cargo check --workspace --all-features --all-targets
+
   windows-tests-msvc:
 
     runs-on: windows-latest

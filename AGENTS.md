@@ -21,7 +21,7 @@ cargo test --workspace --all-features
 SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always cargo test --workspace --all-features
 ```
 
-CI runs on Linux and Windows (`.github/workflows/dav1d.yml`). MSRV is **1.78** (Rust 2021).
+CI runs on Linux and Windows (`.github/workflows/dav1d.yml`). MSRV is **1.85** (Rust 2021) and is checked by the `msrv` job with `cargo check --workspace --all-features --all-targets`.
 
 ## Conventions and pitfalls
 
