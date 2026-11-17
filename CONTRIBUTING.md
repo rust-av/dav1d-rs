@@ -6,13 +6,13 @@ Thanks for your interest in contributing!
 
 - `src/lib.rs` — the safe `dav1d` wrapper crate.
 - `dav1d-sys/` — FFI bindings and `build.rs` (library discovery via `system-deps`, with optional internal dav1d build).
-- `tools/` — `dav1d-tools`, a work-alike of the `dav1d` command line tool built on the safe wrapper (not published).
+- `tools/` — `dav1d-tools`, a separate crate with a work-alike of the `dav1d` command line tool built on the safe wrapper. It is versioned and published independently.
 - `.github/workflows/dav1d.yml` — CI (Linux, Windows and an MSRV check).
 
 ## Prerequisites
 
-- Rust toolchain with **MSRV 1.85** (edition 2021) for the published crates. CI has a dedicated job checking it.
-- `dav1d-tools` needs **1.88** because of `winnow-args`; it is excluded from the MSRV job.
+- Rust toolchain with **MSRV 1.85** (edition 2021) for the published wrapper crates. CI has a dedicated job checking it.
+- `dav1d-tools` has its own MSRV of **1.88** because of `winnow-args`; it is not part of that job.
 - A working C toolchain.
 - `meson` and `ninja` when building dav1d from source (CI builds dav1d 1.5.4 internally).
 - `pkg-config`/`pkgconf` so `system-deps` can locate `libdav1d` (or set `SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always` to build it from source).
@@ -56,7 +56,7 @@ The safe wrapper depends on `dav1d-sys` via a path dependency and re-exports `da
 ## Release process (maintainers)
 
 1. Land the changes on `master` with CI green.
-2. Bump versions in `Cargo.toml`, `dav1d-sys/Cargo.toml`, and `tools/Cargo.toml` (and the `dav1d-sys` dependency in the root crate) in a `Prepare for release` commit.
+2. Bump versions in `Cargo.toml` and `dav1d-sys/Cargo.toml` (and the `dav1d-sys` dependency in the root crate) in a `Prepare for release` commit. `dav1d-tools` is versioned and released independently.
 3. Tag the release (e.g. `v0.12.0`).
 4. Publish `dav1d-sys` first, then `dav1d`:
    ```sh
