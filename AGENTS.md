@@ -8,7 +8,7 @@ Rust bindings for [dav1d](https://code.videolan.org/videolan/dav1d) (AV1 decoder
 
 - `dav1d` (root, `src/lib.rs`) — safe wrapper API.
 - `dav1d-sys` (`dav1d-sys/`) — hand-written FFI (`dav1d-sys/src/lib.rs`) + `build.rs` using `system-deps` (finds `libdav1d` or builds it internally).
-- `dav1d-tools` (`tools/`) — internal CLI/example binary, not published.
+- `dav1d-tools` (`tools/`) — work-alike of the `dav1d` CLI built on the safe wrapper (not published).
 
 ## Key commands
 
@@ -21,7 +21,7 @@ cargo test --workspace --all-features
 SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always cargo test --workspace --all-features
 ```
 
-CI runs on Linux and Windows (`.github/workflows/dav1d.yml`). MSRV is **1.85** (Rust 2021) and is checked by the `msrv` job with `cargo check --workspace --all-features --all-targets`.
+CI runs on Linux and Windows (`.github/workflows/dav1d.yml`). The published crates have an MSRV of **1.85** (Rust 2021), checked by the `msrv` job with `cargo check -p dav1d -p dav1d-sys --all-features --all-targets`. `dav1d-tools` needs **1.88** because of `winnow-args` and is not part of that check.
 
 ## Conventions and pitfalls
 
