@@ -12,6 +12,6 @@ keywords = ["av1", "dav1d", "decoder", "video"]
 categories = ["command-line-utilities", "multimedia::video"]
 
 [dependencies]
-dav1d = { path = "..", version = "0.12" }
-md5 = "0.8"
-winnow-args = "0.6"
+dav1d.workspace = true
+md5.workspace = true
+winnow-args.workspace = true
