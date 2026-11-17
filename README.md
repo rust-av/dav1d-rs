@@ -50,13 +50,13 @@ See the crate documentation on [docs.rs](https://docs.rs/dav1d) for the full API
 
 ## Command line tool
 
-The workspace also contains `dav1d-tools`, an unpublished binary that mirrors the `dav1d` command line tool. It detects IVF, Annex B and Section 5 streams, writes y4m, raw yuv or md5 output, and supports the same options (`--limit`, `--skip`, `--verify`, per-frame output and so on):
+The workspace also contains `dav1d-tools`, a separate crate with a work-alike of the `dav1d` command line tool. It detects IVF, Annex B and Section 5 streams, writes y4m, raw yuv or md5 output, and supports the same options (`--limit`, `--skip`, `--verify`, per-frame output and so on):
 
 ```sh
 cargo run -p dav1d-tools -- -i input.ivf -o output.y4m
 ```
 
-It requires Rust 1.88 because of its `winnow-args` dependency.
+It is versioned and published independently of the wrapper crates, and requires Rust 1.88 because of its `winnow-args` dependency.
 
 ## Building
 
