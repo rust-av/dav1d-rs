@@ -1,51 +1,90 @@
-# libdav1d bindings [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![Actions Status](https://github.com/rust-av/dav1d-rs/workflows/dav1d/badge.svg)](https://github.com/rust-av/dav1d-rs/actions)
+# dav1d-rs
 
-It is a simple FFI binding and safe abstraction over [dav1d][1].
+[![crates.io](https://img.shields.io/crates/v/dav1d.svg)](https://crates.io/crates/dav1d)
+[![docs.rs](https://docs.rs/dav1d/badge.svg)](https://docs.rs/dav1d)
+[![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/rust-av/dav1d-rs/actions/workflows/dav1d.yml/badge.svg)](https://github.com/rust-av/dav1d-rs/actions/workflows/dav1d.yml)
 
+Rust bindings for [dav1d][dav1d], the fast and small AV1 decoder.
+
+This repository provides two crates:
+
+- **`dav1d`** — a safe, idiomatic wrapper around the decoder.
+- **`dav1d-sys`** — low-level FFI bindings to `libdav1d` (found via `pkg-config`/`system-deps`, or built from source).
+
+## Usage
+
+Add the wrapper crate to your project:
+
+```toml
+[dependencies]
+dav1d = "0.12"
+```
+
+A minimal decoding loop looks like this:
+
+```rust,no_run
+use dav1d::{Decoder, Error, Settings};
+
+fn decode() -> Result<(), Error> {
+    let mut decoder = Decoder::with_settings(&Settings::new())?;
+    // Feed AV1 OBUs (for example, packets demuxed from IVF/MP4/WebM).
+    decoder.send_data(Vec::<u8>::new(), None, None, None)?;
+
+    loop {
+        match decoder.get_picture() {
+            Ok(picture) => {
+                let y = picture.plane(dav1d::PlanarImageComponent::Y);
+                let _ = (picture.width(), picture.height(), y.as_ref());
+            }
+            Err(Error::Again) => break,
+            Err(e) => return Err(e),
+        }
+    }
+
+    Ok(())
+}
+```
+
+See the crate documentation on [docs.rs](https://docs.rs/dav1d) for the full API, including picture allocation hooks, metadata accessors, and the `dav1d_picture()` escape hatch for interoperating with libraries that consume dav1d's native structures (e.g. libplacebo).
 
 ## Building
 
-To build the code, always have a look at [CI](https://github.com/rust-av/dav1d-rs/blob/master/.github/workflows/dav1d.yml) to install the necessary dependencies on all
-supported operating systems.
+You need a C toolchain, `meson`, and `ninja` if `libdav1d` is not already installed system-wide. `system-deps` locates the library through `pkg-config`; when no suitable system copy is found it can build dav1d internally.
 
-### Overriding the dav1d library
+Useful environment variables (see [`system-deps`](https://docs.rs/system-deps)):
 
-The bindings use [system-deps](https://docs.rs/system-deps) to find dav1d. You may override the `PKG_CONFIG_PATH` or
-direcly set the env vars `SYSTEM_DEPS_DAV1D_SEARCH_NATIVE` and/or `SYSTEM_DEPS_DAV1D_LIB`.
+- `PKG_CONFIG_PATH` — additional `pkg-config` search paths.
+- `SYSTEM_DEPS_DAV1D_SEARCH_NATIVE` / `SYSTEM_DEPS_DAV1D_LIB` — override discovery/linking.
+- `SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always` — force a vendored build of dav1d.
 
-## Building with vcpkg for Windows x64
+Run the test suite with:
 
-To build with [vcpkg](https://vcpkg.io/en/index.html), you need to follow these
-steps:
+```sh
+cargo test --workspace --all-features
+```
 
-1. Install `pkg-config` through [chocolatey](https://chocolatey.org/)
+### Windows (vcpkg, x64)
 
-       choco install pkgconfiglite
+```powershell
+choco install pkgconfiglite
+vcpkg install dav1d:x64-windows
+# add %VCPKG_INSTALLATION_ROOT%\installed\x64-windows\lib\pkgconfig to PKG_CONFIG_PATH
+cargo build --workspace
+```
 
-2. Install `dav1d`
+(Use `x86-windows` for a 32-bit build.)
 
-       vcpkg install dav1d:x64-windows
+## Supported dav1d versions
 
-3. Add to the `PKG_CONFIG_PATH` environment variable the path `$VCPKG_INSTALLATION_ROOT\installed\x64-windows\lib\pkgconfig`
+The bindings target `libdav1d` **>= 1.3.0 and <= 1.5.4**. Older releases are unsupported; newer dav1d releases may work but are not part of the tested matrix yet.
 
-4. Build code
+## Contributing
 
-       cargo build --workspace
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, testing, and release notes, and [AGENTS.md](AGENTS.md) for guidance aimed at automated coding agents.
 
-To speed up the computation, you can build your packages only in `Release` mode
-adding the `set(VCPKG_BUILD_TYPE release)` line to the
-`$VCPKG_INSTALLATION_ROOT\triplets\x64-windows.cmake` file.
+## License
 
-Building for Windows x86 is the same, just replace `x64` with `x86` in the
-steps above.
+MIT — see [LICENSE](LICENSE).
 
-## Supported versions
-
-The bindings require dav1d>=1.3.0 ( Might not work for >1.5.0 )
-
-## TODO
-- [x] Simple bindings
-- [x] Safe abstraction
-- [ ] Examples
-
-[1]: https://code.videolan.org/videolan/dav1d
+[dav1d]: https://code.videolan.org/videolan/dav1d
