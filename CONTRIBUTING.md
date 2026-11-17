@@ -7,11 +7,11 @@ Thanks for your interest in contributing!
 - `src/lib.rs` — the safe `dav1d` wrapper crate.
 - `dav1d-sys/` — FFI bindings and `build.rs` (library discovery via `system-deps`, with optional internal dav1d build).
 - `tools/` — a small workspace binary crate (`dav1d-tools`), not published.
-- `.github/workflows/dav1d.yml` — CI (Linux and Windows).
+- `.github/workflows/dav1d.yml` — CI (Linux, Windows and an MSRV check).
 
 ## Prerequisites
 
-- Rust toolchain with **MSRV 1.78** (edition 2021).
+- Rust toolchain with **MSRV 1.85** (edition 2021). CI has a dedicated job checking it.
 - A working C toolchain.
 - `meson` and `ninja` when building dav1d from source (CI builds dav1d 1.5.4 internally).
 - `pkg-config`/`pkgconf` so `system-deps` can locate `libdav1d` (or set `SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always` to build it from source).
