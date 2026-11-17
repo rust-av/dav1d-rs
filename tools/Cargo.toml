@@ -2,10 +2,10 @@
 name = "dav1d-tools"
 version = "0.1.0"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.88"
 
 [dependencies]
 dav1d = { path = "..", version = "0.12" }
-bitstream-io = "4.0"
-log = "0.4"
-structopt = "0.3"
+md5 = "0.8"
+winnow-args = "0.6"
