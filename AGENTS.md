@@ -26,6 +26,7 @@ CI runs on Linux and Windows (`.github/workflows/dav1d.yml`). The published wrap
 ## Conventions and pitfalls
 
 - **`dav1d-sys` is ABI-critical.** Bindings are hand-written (no bindgen). Keep struct layout, field types/order, enums/constants, and `#[repr(...)]` identical to dav1d's public headers for the supported version range. When touching layout-sensitive types, update the size assertions in `dav1d-sys/src/lib.rs` (`tests::size`).
+- **Dependencies are centralized** in the root `[workspace.dependencies]`; member crates inherit them with `workspace = true`. Update versions there, not in each crate.
 - **Safe API lives in `src/lib.rs`.** Preserve existing behavior and soundness: `Send`/`Sync` impls, picture allocator safety contracts, and the `Again`/pending-data flow in `Decoder`.
 - **`dav1d` re-exports `dav1d_sys::Dav1dPicture` and exposes `Picture::dav1d_picture()`** for interop with native consumers (e.g. libplacebo). Keep that escape hatch working when evolving the wrapper.
 - **Monochrome (I400) has no chroma planes.** `Plane::as_ref()`/`plane_data_geometry` must not fabricate a slice for U/V on grayscale frames.
