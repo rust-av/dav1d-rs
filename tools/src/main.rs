@@ -22,7 +22,7 @@ mod ivf {
         let v1 = br.read::<u16>()?;
         br.read_bytes(&mut tag)?;
 
-        log::debug!("sign {:?} version {} {} tag {:?}", &signature, v0, v1, &tag);
+        log::debug!("sign {:?} version {} {} tag {:?}", signature, v0, v1, tag);
 
         let w = br.read::<u16>()?;
         let h = br.read::<u16>()?;
