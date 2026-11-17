@@ -1,6 +1,8 @@
 use dav1d_sys::*;
 
 pub use av_data::pixel;
+pub use dav1d_sys;
+pub use dav1d_sys::Dav1dPicture;
 use std::ffi::{c_int, c_void};
 use std::fmt::{self, Debug};
 use std::i64;
@@ -1175,6 +1177,18 @@ impl<A: PictureAllocator> Picture<A> {
             }
         }
     }
+
+    /// The underlying native `Dav1dPicture`.
+    ///
+    /// This can be used to hand the decoded frame over to other libraries
+    /// consuming dav1d's native structures, e.g. libplacebo's
+    /// `pl_frame_from_dav1dpicture()`.
+    ///
+    /// The returned reference is only valid for as long as the picture is
+    /// alive.
+    pub fn dav1d_picture(&self) -> &Dav1dPicture {
+        &self.inner.pic
+    }
 }
 
 static_assertions::assert_impl_all!(Picture<DefaultAllocator>: Send, Sync, Clone, Debug);
@@ -1682,6 +1696,17 @@ mod test {
             assert!(picture.plane_data_ptr(component).is_null());
             assert!(picture.plane(component).is_empty());
         }
+    }
+
+    #[test]
+    fn test_dav1d_picture() {
+        let picture = synthetic_picture(super::PixelLayout::I420, 320, 240);
+
+        let dav1d_picture = picture.dav1d_picture();
+
+        assert_eq!(dav1d_picture.p.w, 320);
+        assert_eq!(dav1d_picture.p.h, 240);
+        assert_eq!(dav1d_picture.p.layout, super::DAV1D_PIXEL_LAYOUT_I420);
     }
 }
 
