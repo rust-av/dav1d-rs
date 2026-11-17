@@ -5,7 +5,6 @@ pub use dav1d_sys;
 pub use dav1d_sys::Dav1dPicture;
 use std::ffi::{c_int, c_void};
 use std::fmt::{self, Debug};
-use std::i64;
 use std::mem;
 use std::ptr;
 use std::sync::Arc;
@@ -1484,17 +1483,17 @@ mod test {
                 crate::PixelLayout::I420 => (
                     [
                         align(pic_params.width() as usize) * stride_mult,
-                        align((pic_params.width() as usize + 1) / 2) * stride_mult,
+                        align((pic_params.width() as usize).div_ceil(2)) * stride_mult,
                     ],
                     [
                         align(pic_params.height() as usize),
-                        align((pic_params.height() as usize + 1) / 2),
+                        align((pic_params.height() as usize).div_ceil(2)),
                     ],
                 ),
                 crate::PixelLayout::I422 => (
                     [
                         align(pic_params.width() as usize) * stride_mult,
-                        align((pic_params.width() as usize + 1) / 2) * stride_mult,
+                        align((pic_params.width() as usize).div_ceil(2)) * stride_mult,
                     ],
                     [
                         align(pic_params.height() as usize),
