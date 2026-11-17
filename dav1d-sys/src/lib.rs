@@ -694,6 +694,12 @@ mod tests {
         assert_size!(Dav1dSettings, 96);
         #[cfg(target_pointer_width = "32")]
         assert_size!(Dav1dSettings, 76);
+
+        // The sequence header layout is ABI critical, the values match
+        // dav1d's include/dav1d/headers.h for every supported release.
+        assert_size!(Dav1dSequenceHeader, 808);
+        assert_size!(Dav1dSequenceHeaderOperatingPoint, 10);
+        assert_size!(Dav1dSequenceHeaderOperatingParameterInfo, 12);
     }
 
     #[test]
