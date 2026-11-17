@@ -905,7 +905,14 @@ pub struct BitsPerComponent(pub usize);
 
 impl<A: PictureAllocator> Picture<A> {
     /// Stride in pixels of the `component` for the decoded frame.
+    ///
+    /// Monochrome frames have no chroma planes, for them this returns
+    /// `0` for the U and V components.
     pub fn stride(&self, component: PlanarImageComponent) -> u32 {
+        if self.pixel_layout() == PixelLayout::I400 && component != PlanarImageComponent::Y {
+            return 0;
+        }
+
         let s = match component {
             PlanarImageComponent::Y => 0,
             _ => 1,
@@ -914,7 +921,14 @@ impl<A: PictureAllocator> Picture<A> {
     }
 
     /// Raw pointer to the data of the `component` for the decoded frame.
+    ///
+    /// Monochrome frames have no chroma planes, for them this returns
+    /// a null pointer for the U and V components.
     pub fn plane_data_ptr(&self, component: PlanarImageComponent) -> *mut c_void {
+        if self.pixel_layout() == PixelLayout::I400 && component != PlanarImageComponent::Y {
+            return ptr::null_mut();
+        }
+
         let index: usize = component.into();
         self.inner.pic.data[index]
     }
@@ -922,12 +936,17 @@ impl<A: PictureAllocator> Picture<A> {
     /// Plane geometry of the `component` for the decoded frame.
     ///
     /// This returns the stride and height.
+    ///
+    /// Monochrome frames have no chroma planes, for them this returns
+    /// `(0, 0)` for the U and V components.
     pub fn plane_data_geometry(&self, component: PlanarImageComponent) -> (u32, u32) {
         let height = match component {
             PlanarImageComponent::Y => self.height(),
             _ => match self.pixel_layout() {
-                PixelLayout::I420 => (self.height() + 1) / 2,
-                PixelLayout::I400 | PixelLayout::I422 | PixelLayout::I444 => self.height(),
+                PixelLayout::I420 => self.height().div_ceil(2),
+                PixelLayout::I422 | PixelLayout::I444 => self.height(),
+                // Monochrome frames have no chroma planes.
+                PixelLayout::I400 => return (0, 0),
             },
         };
         (self.stride(component), height)
@@ -1175,7 +1194,8 @@ impl Drop for InnerPicture {
 mod test {
     use std::{
         collections::HashSet,
-        fmt, ptr,
+        ffi::c_void,
+        fmt, mem, ptr,
         sync::{self, atomic},
     };
 
@@ -1575,6 +1595,93 @@ mod test {
         assert_eq!(allocated.load(atomic::Ordering::SeqCst), 5);
         drop(pictures);
         assert_eq!(allocated.load(atomic::Ordering::SeqCst), 0);
+    }
+
+    /// Builds a picture without going through the decoder.
+    ///
+    /// This is used to exercise the code paths for the pixel layouts that
+    /// are not covered by the test files.
+    fn synthetic_picture(
+        layout: super::PixelLayout,
+        width: u32,
+        height: u32,
+    ) -> super::Picture<super::DefaultAllocator> {
+        let (dav1d_layout, chroma_stride) = match layout {
+            super::PixelLayout::I400 => (super::DAV1D_PIXEL_LAYOUT_I400, 0),
+            super::PixelLayout::I420 => (super::DAV1D_PIXEL_LAYOUT_I420, width / 2),
+            super::PixelLayout::I422 => (super::DAV1D_PIXEL_LAYOUT_I422, width / 2),
+            super::PixelLayout::I444 => (super::DAV1D_PIXEL_LAYOUT_I444, width),
+        };
+
+        // The buffers are intentionally leaked, the picture is only used to
+        // inspect the plane geometry.
+        let data = Box::leak(vec![0u8; (width * height) as usize].into_boxed_slice());
+        let seq_hdr = Box::leak(Box::new(unsafe {
+            mem::zeroed::<super::Dav1dSequenceHeader>()
+        }));
+
+        let mut pic: super::Dav1dPicture = unsafe { mem::zeroed() };
+        pic.seq_hdr = seq_hdr;
+        pic.data = [
+            data.as_mut_ptr() as *mut c_void,
+            ptr::null_mut(),
+            ptr::null_mut(),
+        ];
+        pic.stride = [width as isize, chroma_stride as isize];
+        pic.p.w = width as i32;
+        pic.p.h = height as i32;
+        pic.p.layout = dav1d_layout;
+        pic.p.bpc = 8;
+
+        super::Picture {
+            inner: sync::Arc::new(super::InnerPicture { pic }),
+            allocator: None,
+        }
+    }
+
+    #[test]
+    fn test_plane_geometry() {
+        let picture = synthetic_picture(super::PixelLayout::I420, 320, 240);
+
+        assert_eq!(
+            picture.plane_data_geometry(super::PlanarImageComponent::Y),
+            (320, 240)
+        );
+        assert_eq!(
+            picture.plane_data_geometry(super::PlanarImageComponent::U),
+            (160, 120)
+        );
+        assert_eq!(
+            picture.plane_data_geometry(super::PlanarImageComponent::V),
+            (160, 120)
+        );
+    }
+
+    #[test]
+    fn test_plane_geometry_monochrome() {
+        let picture = synthetic_picture(super::PixelLayout::I400, 320, 240);
+
+        assert_eq!(picture.pixel_layout(), super::PixelLayout::I400);
+        assert_eq!(
+            picture.plane_data_geometry(super::PlanarImageComponent::Y),
+            (320, 240)
+        );
+        assert!(picture.stride(super::PlanarImageComponent::Y) >= 320);
+        assert!(!picture
+            .plane_data_ptr(super::PlanarImageComponent::Y)
+            .is_null());
+
+        // Monochrome frames have no chroma planes, accessing them must not
+        // expose any data.
+        for component in [
+            super::PlanarImageComponent::U,
+            super::PlanarImageComponent::V,
+        ] {
+            assert_eq!(picture.plane_data_geometry(component), (0, 0));
+            assert_eq!(picture.stride(component), 0);
+            assert!(picture.plane_data_ptr(component).is_null());
+            assert!(picture.plane(component).is_empty());
+        }
     }
 }
 
