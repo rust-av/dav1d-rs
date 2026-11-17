@@ -11,16 +11,29 @@ version = "0.12.0"
 rust-version = "1.85"
 
 [dependencies]
-bitflags = "2"
-dav1d-sys = { version = "0.9.0", path = "dav1d-sys" }
-av-data = "0.4.2"
-static_assertions = "1"
+av-data.workspace = true
+bitflags.workspace = true
+dav1d-sys.workspace = true
+static_assertions.workspace = true
 
 [dev-dependencies]
-bitstream-io = "4.0"
+bitstream-io.workspace = true
 
 [features]
 
 [workspace]
 members = ["dav1d-sys", "tools"]
 resolver = "3"
+
+[workspace.dependencies]
+av-data = "0.4.2"
+bitflags = "2"
+bitstream-io = "4.0"
+# The path is used in the workspace; `cargo publish` keeps only the version.
+dav1d = { version = "0.12", path = "." }
+dav1d-sys = { version = "0.9.0", path = "dav1d-sys" }
+libc = "0.2"
+md5 = "0.8"
+static_assertions = "1"
+system-deps = "9"
+winnow-args = "0.6"

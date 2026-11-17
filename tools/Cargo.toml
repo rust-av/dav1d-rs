@@ -2,10 +2,16 @@
 name = "dav1d-tools"
 version = "0.1.0"
 authors = ["Luca Barbato <lu_zero@gentoo.org>"]
-edition = "2018"
+description = "Command line AV1 decoder built on the dav1d Rust bindings"
+edition = "2021"
+rust-version = "1.88"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/rust-av/dav1d-rs"
+keywords = ["av1", "dav1d", "decoder", "video"]
+categories = ["command-line-utilities", "multimedia::video"]
 
 [dependencies]
-dav1d = { path = "..", version = "0.12" }
-bitstream-io = "4.0"
-log = "0.4"
-structopt = "0.3"
+dav1d.workspace = true
+md5.workspace = true
+winnow-args.workspace = true

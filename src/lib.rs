@@ -1698,6 +1698,75 @@ mod test {
     }
 
     #[test]
+    fn test_plane_geometry_422() {
+        let picture = synthetic_picture(super::PixelLayout::I422, 320, 240);
+
+        assert_eq!(picture.pixel_layout(), super::PixelLayout::I422);
+        assert_eq!(
+            picture.plane_data_geometry(super::PlanarImageComponent::Y),
+            (320, 240)
+        );
+        // 4:2:2 subsamples horizontally only.
+        assert_eq!(
+            picture.plane_data_geometry(super::PlanarImageComponent::U),
+            (160, 240)
+        );
+        assert_eq!(
+            picture.plane_data_geometry(super::PlanarImageComponent::V),
+            (160, 240)
+        );
+    }
+
+    #[test]
+    fn test_plane_geometry_444() {
+        let picture = synthetic_picture(super::PixelLayout::I444, 320, 240);
+
+        assert_eq!(picture.pixel_layout(), super::PixelLayout::I444);
+        for component in [
+            super::PlanarImageComponent::Y,
+            super::PlanarImageComponent::U,
+            super::PlanarImageComponent::V,
+        ] {
+            assert_eq!(
+                picture.plane_data_geometry(component),
+                (320, 240),
+                "{component:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_plane_slice_covers_the_visible_rows() {
+        let picture = synthetic_picture(super::PixelLayout::I420, 320, 240);
+
+        let y = picture.plane(super::PlanarImageComponent::Y);
+        assert_eq!(y.len(), 320 * 240);
+
+        // The synthetic chroma pointers are null, so the slices are empty.
+        for component in [
+            super::PlanarImageComponent::U,
+            super::PlanarImageComponent::V,
+        ] {
+            assert!(picture.plane(component).is_empty());
+        }
+    }
+
+    #[test]
+    fn test_plane_component_conversion() {
+        for (index, component) in [
+            super::PlanarImageComponent::Y,
+            super::PlanarImageComponent::U,
+            super::PlanarImageComponent::V,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            assert_eq!(usize::from(component), index);
+            assert_eq!(super::PlanarImageComponent::from(index), component);
+        }
+    }
+
+    #[test]
     fn test_dav1d_picture() {
         let picture = synthetic_picture(super::PixelLayout::I420, 320, 240);
 
