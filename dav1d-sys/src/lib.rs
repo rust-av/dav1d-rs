@@ -641,7 +641,7 @@ extern "C" {
         out: *mut Dav1dDataProps,
     ) -> c_int;
 
-    pub fn dav1d_get_frame_delay(c: *mut Dav1dContext) -> c_int;
+    pub fn dav1d_get_frame_delay(s: *const Dav1dSettings) -> c_int;
 
     pub fn dav1d_apply_grain(
         c: *mut Dav1dContext,
