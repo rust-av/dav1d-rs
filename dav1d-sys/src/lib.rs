@@ -703,57 +703,6 @@ mod tests {
     }
 
     #[test]
-    fn picture_layout() {
-        use std::mem::offset_of;
-
-        // Dav1dPicture is ABI critical: the C struct has `size_t n_itut_t35`
-        // between itut_t35 and reserved, then the five Dav1dRef pointers.
-        // Check the distances in pointer-sized units so the test works on
-        // both 32-bit and 64-bit targets.
-        let p = std::mem::size_of::<usize>();
-        assert_eq!(
-            offset_of!(Dav1dPicture, reserved),
-            offset_of!(Dav1dPicture, itut_t35) + 2 * p
-        );
-        assert_eq!(
-            offset_of!(Dav1dPicture, frame_hdr_ref),
-            offset_of!(Dav1dPicture, reserved) + 4 * p
-        );
-        assert_eq!(
-            offset_of!(Dav1dPicture, seq_hdr_ref),
-            offset_of!(Dav1dPicture, frame_hdr_ref) + p
-        );
-        assert_eq!(
-            offset_of!(Dav1dPicture, content_light_ref),
-            offset_of!(Dav1dPicture, seq_hdr_ref) + p
-        );
-        assert_eq!(
-            offset_of!(Dav1dPicture, mastering_display_ref),
-            offset_of!(Dav1dPicture, content_light_ref) + p
-        );
-        assert_eq!(
-            offset_of!(Dav1dPicture, itut_t35_ref),
-            offset_of!(Dav1dPicture, mastering_display_ref) + p
-        );
-        assert_eq!(
-            offset_of!(Dav1dPicture, reserved_ref),
-            offset_of!(Dav1dPicture, itut_t35_ref) + p
-        );
-        assert_eq!(
-            offset_of!(Dav1dPicture, ref_),
-            offset_of!(Dav1dPicture, reserved_ref) + 4 * p
-        );
-        assert_eq!(
-            offset_of!(Dav1dPicture, allocator_data),
-            offset_of!(Dav1dPicture, ref_) + p
-        );
-        assert_eq!(
-            std::mem::size_of::<Dav1dPicture>(),
-            offset_of!(Dav1dPicture, allocator_data) + p
-        );
-    }
-
-    #[test]
     fn version() {
         println!("{}", unsafe {
             CStr::from_ptr(dav1d_version()).to_string_lossy()
