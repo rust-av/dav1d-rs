@@ -434,6 +434,19 @@ impl Settings {
         DecodeFrameType::try_from(self.dav1d_settings.decode_frame_type)
             .expect("Invalid Dav1dDecodeFrameType")
     }
+
+    /// Get the decoder frame delay for these settings.
+    ///
+    /// This is the number of internally buffered frames, not including reference frames. The
+    /// returned delay is only valid for a [`Decoder`] initialized with these [`Settings`].
+    pub fn get_frame_delay(&self) -> Result<u32, Error> {
+        let ret = unsafe { dav1d_get_frame_delay(&self.dav1d_settings) };
+        if ret < 0 {
+            Err(Error::from(ret))
+        } else {
+            Ok(ret as u32)
+        }
+    }
 }
 
 bitflags::bitflags! {
@@ -501,6 +514,7 @@ impl std::error::Error for TryFromEnumError {}
 #[derive(Debug)]
 pub struct Decoder<A: PictureAllocator = DefaultAllocator> {
     dec: ptr::NonNull<Dav1dContext>,
+    settings: Dav1dSettings,
     pending_data: Option<Dav1dData>,
     allocator: Option<Arc<A>>,
 }
@@ -526,6 +540,7 @@ impl Decoder {
 
             Ok(Decoder {
                 dec: ptr::NonNull::new(dec.assume_init()).unwrap(),
+                settings: settings.dav1d_settings,
                 pending_data: None,
                 allocator: None,
             })
@@ -616,6 +631,7 @@ impl<A: PictureAllocator> Decoder<A> {
 
             Ok(Decoder {
                 dec: ptr::NonNull::new(dec.assume_init()).unwrap(),
+                settings,
                 pending_data: None,
                 allocator: Some(allocator),
             })
@@ -773,10 +789,14 @@ impl<A: PictureAllocator> Decoder<A> {
         }
     }
 
-    /// Get the decoder delay.
+    /// Get the decoder frame delay.
+    ///
+    /// This is the number of internally buffered frames, not including reference frames, for the
+    /// [`Settings`] the decoder was opened with. It is guaranteed to be `>= 1` and
+    /// `<= Settings::get_max_frame_delay()`.
     pub fn get_frame_delay(&self) -> Result<u32, Error> {
         unsafe {
-            let ret = dav1d_get_frame_delay(self.dec.as_ptr());
+            let ret = dav1d_get_frame_delay(&self.settings);
             if ret < 0 {
                 Err(Error::from(ret))
             } else {
