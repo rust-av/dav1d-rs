@@ -700,6 +700,12 @@ mod tests {
         assert_size!(Dav1dSequenceHeader, 808);
         assert_size!(Dav1dSequenceHeaderOperatingPoint, 10);
         assert_size!(Dav1dSequenceHeaderOperatingParameterInfo, 12);
+
+        // Dav1dPicture is ABI critical too; on 64-bit targets the value
+        // matches dav1d's include/dav1d/picture.h (n_itut_t35 sits between
+        // itut_t35 and reserved).
+        #[cfg(target_pointer_width = "64")]
+        assert_size!(Dav1dPicture, 272);
     }
 
     #[test]
