@@ -7,7 +7,7 @@ license = "MIT"
 name = "dav1d"
 readme = "README.md"
 repository = "https://github.com/rust-av/dav1d-rs"
-version = "0.12.0"
+version = "0.12.1"
 rust-version = "1.85"
 
 [dependencies]
@@ -31,7 +31,7 @@ bitflags = "2"
 bitstream-io = "4.0"
 # The path is used in the workspace; `cargo publish` keeps only the version.
 dav1d = { version = "0.12", path = "." }
-dav1d-sys = { version = "0.9.0", path = "dav1d-sys" }
+dav1d-sys = { version = "0.9.1", path = "dav1d-sys" }
 libc = "0.2"
 md5 = "0.8"
 static_assertions = "1"
